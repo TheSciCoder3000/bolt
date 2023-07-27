@@ -1,4 +1,6 @@
 const db = require("../model");
+const bcrypt = require("bcryptjs");
+
 
 module.exports = {
     login: (passport) => (req, res, next) => {

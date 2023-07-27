@@ -1,10 +1,7 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
-const db = require("../model");
-
 const app = express();
 
-const controllers = require("../controllers/auth.controllers");
+const controllers = require("../controllers/auth.controller");
 
 module.exports = function (passport) {
     app.post("/api/login", controllers.login(passport))
