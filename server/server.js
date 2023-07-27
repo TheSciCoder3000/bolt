@@ -11,8 +11,9 @@ const sessionConfig = require("./config/session.config");
 const corsConfig = require("./config/cors.config");
 
 // apis
-const authApi = require("./api/auth.api")
-const subjectApi = require("./api/subject.api")
+const authApi = require("./api/auth.api");
+const subjectApi = require("./api/subject.api");
+const taskApi = require("./api/task.api");
 
 const app = express();
 
@@ -36,6 +37,6 @@ require("./config/passport.config")(passport);
 // ================================== API ==================================
 app.use(authApi(passport))          // auth API
 app.use(subjectApi())               // subject API
-
+app.use(taskApi)
 
 app.listen(process.env.PORT || 3005);
