@@ -24,6 +24,7 @@ function LoginRoute() {
     const [loginError, setloginError] = useState<LoginErrorState>(null);
 
     const onSubmit = (data: FormData) => {
+        setloginError(null);
         loginUser(data.username, data.password)
             .then(res => console.log(res))
             .catch(e => setloginError(e.response.data));
@@ -48,7 +49,7 @@ function LoginRoute() {
                     <button type="submit">Login</button>
                 </form>
                 {loginError && (<div className="text-red-400">{loginError.msg}</div>)}
-                <button onClick={() => logoutUser()}>logout</button>
+                <button onClick={() => logoutUser().then(res => console.log(res))}>logout</button>
                 <button onClick={() => testTasks().then(res => console.log(res))}>test task</button>
 
             </div>
