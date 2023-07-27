@@ -4,7 +4,9 @@ import App from './App.tsx'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 
-import TodoRoute from "./routes/TodoRoute.tsx"
+import TodoRoute from "routes/TodoRoute.tsx"
+import LoginRoute from 'routes/LoginRoute.tsx'
+import RegisterRoute from 'routes/RegisterRoute.tsx'
 
 const router = createBrowserRouter([
   {
@@ -25,6 +27,14 @@ const router = createBrowserRouter([
       }
     ]
   },
+  {
+    path: "/login",
+    element: <LoginRoute />
+  },
+  {
+    path: "/register",
+    element: <RegisterRoute />
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
