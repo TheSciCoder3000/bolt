@@ -1,48 +1,41 @@
 require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
-const db = require("./model");
 const cors = require("cors");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-const app = express();
-const port = process.env.PORT || 3005;
 
+// configs
 const sessionConfig = require("./config/session.config");
+const corsConfig = require("./config/cors.config");
 
 // apis
 const authApi = require("./api/auth.api")
 const subjectApi = require("./api/subject.api")
 
+const app = express();
+
 // ================================== Middleware ==================================
-app.use(morgan("dev"));
+app.use(morgan("dev"));     // server logs
 
-app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true
-}));
+app.use(cors(corsConfig));  // enabling CORS
 
-app.use(bodyParser.json());
+// boodyParser Middleware
+app.use(bodyParser.json());         
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(sessionConfig());
-app.use(cookieParser(process.env.SECRET));
+app.use(sessionConfig());       // express-session middleware
+app.use(cookieParser(process.env.SECRET));      // cookie parser middleware
 
+// initializing passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
 require("./config/passport.config")(passport);
 
-// ================================== Auth api ==================================
-app.use(authApi(passport))
+// ================================== API ==================================
+app.use(authApi(passport))          // auth API
+app.use(subjectApi())               // subject API
 
-// ================================== School year api ==================================
-app.use(subjectApi())
 
-app.listen(port, () => {
-    if (!process.env.PORT) {
-        console.log("Port env variable is undefined, using default port 3005");
-        console.log("please set up a .env file to configure your ports");
-    }
-    console.log(`listenning to port ${port}`);
-});
+app.listen(process.env.PORT || 3005);
