@@ -29,6 +29,7 @@ module.exports = function(passport) {
     });
 
     passport.deserializeUser(async (id, cb) => {
+        console.log("deserializing user")
         try {
             const user = await db.query("SELECT * FROM bolt_user WHERE id = $1;", [id]);
             cb(null, user.rows[0]);
