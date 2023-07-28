@@ -9,6 +9,8 @@ module.exports = function (passport) {
     app.post("/api/register", controllers.register())
     
     app.post("/api/logout", controllers.logout())
+
+    app.post("/api/user", controllers.fetchUser())
     
     // app.get("/api/tasks", async (req, res) => {
     //     console.log(req.isAuthenticated())

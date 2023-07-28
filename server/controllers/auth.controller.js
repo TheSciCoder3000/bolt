@@ -43,5 +43,17 @@ module.exports = {
             if (err) return next(err);
             res.status(200).json({ status: "success", msg: "user logged out" })
         })
+    },
+
+    fetchUser: () => (req, res) => {
+        const user = req.session.passport?.user; 
+        if (user) {
+            db.query("SELECT * FROM bolt_user WHERE id = $1;", [user])
+                .then((result) => {
+                    if (result.rows.length == 0) res.status(404).json({ status: "not found", msg: "user not found" })
+                    else res.status(200).json({ status: "success", user: result.rows[0] })
+                })
+                .catch(err => res.status(500).json({ status: "Db error", msg: "unable to fetch user" }))
+        } else res.status(403).json({ status: "forbidden", msg: "You are not logged in" })
     }
 }
