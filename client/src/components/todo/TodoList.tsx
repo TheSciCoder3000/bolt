@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
 import TaskItem from "./TaskItem"
-import { addTask, fetchTasks } from "api/task";
-import { IncTaskState, taskState } from "store/task.slice";
-import { v4 as uuidv4 } from 'uuid';
+import { taskState } from "store/task.slice";
+// import { v4 as uuidv4 } from 'uuid';
 import { connect } from "socket.io-client";
 import { useParams } from "react-router-dom";
 
@@ -20,20 +19,8 @@ const socket = connect("http://localhost:3005", {
 
 
 function TodoList() {
-  // const _tasks: todoTask[] = [
-  //   {
-  //     id: "0",
-  //     name: "testing",
-  //     completed: false
-  //   },
-  //   {
-  //     id: "0",
-  //     name: "testing",
-  //     completed: false
-  //   },
-  // ]
   const [tasks, setTasks] = useState<todoTask[]>([])
-  const [saving, setSaving] = useState<SavingStates>("saved")
+  const [saving] = useState<SavingStates>("saved")
   const { todoSec } = useParams()
 
   useEffect(() => {
@@ -49,52 +36,67 @@ function TodoList() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket])
 
-  const getTasks = () => {
-    fetchTasks().then(data => {
-      const parsedData: todoTask[] = 
-        data.map(item => ({ id: item.id, name: item.name, completed: item.completed }))
-
-      setTasks(parsedData)
-    })
-  }
-  // useEffect(getTasks, [])
-
 
   // inserts an empty task item
-  const addTaskCreation = (id: string) => setTasks(state => {
-    return state
-      // .filter(todoVal => !todoVal.id.startsWith("create-task"))
-      .reduce((prev, current) => {
-        if (id === current.id) return [...prev, current, {
-          id: `create-task-${uuidv4()}`, 
-          name: "", 
-          completed: false 
-        }]
-        return [...prev, current]
-      }, [] as typeof state)
-  })
-
-  const addTaskEvent = async (data: IncTaskState, order: number | null) => {
-    setSaving("saving")
-    console.log("sending get request")
-    console.log({data})
-
-    const affected = order != null ? tasks.reduce((prev, current, indx) => {
-      if (order === indx) return {...prev, found: true}
+  const addTaskCreation = (id: string) => {
+    const affected = tasks.reduce((prev, current, indx) => {
+      if (id === current.id) {
+        const task_order = {} as {[key: string]: number}
+        if (todoSec) task_order[todoSec] = indx + 1 || 0
+        return {...prev, found: true, task_order}
+      }
       else if (prev.found) return {...prev, arr: [...prev.arr, current.id]}
       return prev
-    }, {found: false, arr: [] as string[]}) : null
+    }, {found: false, arr: [] as string[], task_order: {} as {[key:string]: number}})
+    const date = new Date()
 
-    console.log({affected})
-    return addTask(data, {name: "today", order, affected: affected?.arr || []})
-      .then(() => {
-        getTasks()
-        setSaving("saved")
-      })
-      .catch(err => console.log(err))
-    // send post request to create task
-    // on success: change id to a the id generated from the server
-    // on error: reattempt 5 times
+    socket.emit("create-task", {
+      affected: affected.arr, 
+      duedate: date.toISOString().split("T")[0], 
+      task_order: affected.task_order,
+      category: todoSec,
+      preData: null
+    })
+  }
+
+  const deleteTaskEvent = (taskId: string) => {
+    const affected = tasks.reduce((prev, current, indx) => {
+      if (taskId === current.id) {
+        const task_order = {} as {[key: string]: number}
+        if (todoSec) task_order[todoSec] = indx + 1 || 0
+        return {...prev, found: true, task_order}
+      }
+      else if (prev.found) return {...prev, arr: [...prev.arr, current.id]}
+      return prev
+    }, {found: false, arr: [] as string[], task_order: {} as {[key:string]: number}})
+
+    socket.emit("delete-task", {
+      category: todoSec,
+      id: taskId,
+      task_order: affected.task_order,
+      affected: affected.arr
+    })
+  }
+
+  const onTaskItemValChange = (newData: {name: string, completed: boolean}, item_pos: number) => {
+    setTasks(state => state.map((item, indx) => {
+      if (item_pos === indx) return {...item, ...newData}
+      return item;
+    }))
+  }
+
+  const onTaskAloneValueChange = (newData: {name: string, completed: boolean}) => {
+    const date = new Date()
+    const task_order = {} as {[key: string]: number}
+    if (todoSec) task_order[todoSec] = 0
+    // console.log(newData)
+    socket.emit("create-task", {
+      affected: [],
+      duedate: date.toISOString().split("T")[0],
+      task_order,
+      category: todoSec,
+      preData: newData
+    })
   }
 
   return (
@@ -111,13 +113,13 @@ function TodoList() {
               key={task.id} 
               id={task.id}
               name={task.name}
-              task_order={indx}
               completed={task.completed}
               insertTaskCreation={() => addTaskCreation(task.id)}
-              onAddTask={addTaskEvent} />
+              onChange={newData => onTaskItemValChange(newData, indx)}
+              onDelete={() => deleteTaskEvent(task.id)} />
           ))}
           {tasks.length === 0 && (
-            <TaskItem id="create-task-initial" name="" completed={false} task_order={null} onAddTask={addTaskEvent} />
+            <TaskItem id="create-task-initial" name="" completed={false} onChange={newData => onTaskAloneValueChange(newData)} />
           )}
         </div>
       </div>
