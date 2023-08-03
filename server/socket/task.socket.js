@@ -1,16 +1,22 @@
 const db = require("../model");
 const format = require("pg-format");
 
-const fetchSocketTask = (socket) => async (category) => {
+// helper function
+const prefectchTaskData = (dbClient, userId, category) => {
     const sql = format(
         "SELECT * FROM task WHERE user_id = $1 ORDER BY task_order ->> '%s';",
         category
     )
-    const taskData = await db.query(
-        sql, 
-        [socket.request.session.passport.user]
+    return dbClient.query(sql, [userId]).then(result => result.rows)
+}
+
+// ========================= Sockets ========================= 
+const fetchSocketTask = (socket) => async (category) => {
+    const taskData = await prefectchTaskData(
+        db, 
+        socket.request.session.passport.user,
+        category
     )
-        .then(result => result.rows)
         .catch(() => res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" }));
     socket.emit("receive-tasks", taskData);
 }
@@ -54,11 +60,7 @@ const createSocketTask = (socket) => async (data) => {
 
         await client.query("COMMIT")
 
-        const sql2 = format(
-            "SELECT * FROM task WHERE user_id = $1 ORDER BY task_order ->> '%s';",
-            data.category
-        )
-        const taskData = await db.query(sql2, [userId]).then(result => result.rows)
+        const taskData = await prefectchTaskData(client, userId, data.category)
         socket.emit("receive-tasks", taskData);
     } catch (e) {
         await client.query("ROLLBACK");
@@ -93,11 +95,7 @@ const deleteSocketTask = (socket) => async (data) => {
 
         await client.query("COMMIT")
 
-        const sql2 = format(
-            "SELECT * FROM task WHERE user_id = $1 ORDER BY task_order ->> '%s';",
-            data.category
-        )
-        const taskData = await db.query(sql2, [userId]).then(result => result.rows)
+        const taskData = await prefectchTaskData(client, userId, data.category)
 
         socket.emit("receive-tasks", taskData);
     } catch (e) {
