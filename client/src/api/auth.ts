@@ -39,3 +39,25 @@ export async function logoutUser() {
         url: "http://localhost:3005/api/logout"
     })
 }
+
+interface UserResponse {
+    user: {
+        id: string;
+        tags: string[] | null;
+        username: string;
+        email: string | null;
+    }
+
+}
+export async function fetchUserApi() {
+    return await axios<UserResponse>({
+        method: "post",
+        withCredentials: true,
+        url: "http://localhost:3005/api/user"
+    })
+    .then((result) => result.data.user)
+    .catch((err) => {
+        console.log(err)
+        return null
+    })
+}

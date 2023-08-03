@@ -12,6 +12,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Navigate to={"/app"}/>,
+    errorElement: <div>Error 404</div>,
   },
   {
     path: "/app",
@@ -19,13 +20,23 @@ const router = createBrowserRouter([
     children: [
       {
         path: "",
-        element: <Navigate to={"/app/todo"} />
+        element: <Navigate to={"/app/todo/today"} />
       },
       {
         path: "todo",
-        element: <TodoRoute />
+        element: <TodoRoute />,
+        children: [
+          {
+            path: ":todoSec",
+            element: <TodoRoute />
+          },
+          {
+            path: "subj/:todoSec",
+            element: <TodoRoute />
+          }
+        ]
       }
-    ]
+    ],
   },
   {
     path: "/login",
