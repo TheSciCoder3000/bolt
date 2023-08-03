@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react"
 import TaskItem from "./TaskItem"
 import { addTask, fetchTasks } from "api/task";
-import { IncTaskState } from "store/task.slice";
+import { IncTaskState, taskState } from "store/task.slice";
 import { v4 as uuidv4 } from 'uuid';
+import { connect } from "socket.io-client";
+import { useParams } from "react-router-dom";
 
 interface todoTask {
   id: string;
@@ -11,6 +13,10 @@ interface todoTask {
 }
 
 type SavingStates = "saving" | "failed" | "saved"
+
+const socket = connect("http://localhost:3005", {
+  withCredentials: true
+})
 
 
 function TodoList() {
@@ -28,6 +34,20 @@ function TodoList() {
   // ]
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [saving, setSaving] = useState<SavingStates>("saved")
+  const { todoSec } = useParams()
+
+  useEffect(() => {
+    socket.on("receive-tasks", (data: taskState[]) => {
+      setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
+    })
+
+    socket.emit("fetch-tasks", todoSec)
+
+    return () => {
+      socket.removeAllListeners("receive-tasks")
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket])
 
   const getTasks = () => {
     fetchTasks().then(data => {
@@ -37,7 +57,7 @@ function TodoList() {
       setTasks(parsedData)
     })
   }
-  useEffect(getTasks, [])
+  // useEffect(getTasks, [])
 
 
   // inserts an empty task item
