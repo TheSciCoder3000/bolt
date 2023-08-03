@@ -9,7 +9,7 @@ app.route("/api/task")
 
 app.route("/api/task/:id")
     .get()
-    .put()
+    .put(controller.updateTask)
     .delete();
 
 module.exports = app;

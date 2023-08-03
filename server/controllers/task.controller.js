@@ -1,4 +1,5 @@
 const db = require("../model");
+const format = require("pg-format")
 
 const getAllTasks = (req, res) => {
     if (!req.isAuthenticated() || !req.session.passport?.user) 
@@ -6,7 +7,7 @@ const getAllTasks = (req, res) => {
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         }); 
     else {
-        db.query("SELECT * FROM task WHERE user_id = $1;", [req.session.passport.user])
+        db.query("SELECT * FROM task WHERE user_id = $1 ORDER BY task_order ->> 'today';", [req.session.passport.user])
             .then(result => res.status(200).json({
                 status: "success",
                 msg: "tasks found",
@@ -42,28 +43,71 @@ const addTask = (req, res) => {
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         });
     else {
+        const json_val = {}
+        const taskCreationOrder = req.body.category.order || 0
+        json_val[req.body.category.name] = taskCreationOrder
+
+        const affectedParsed = req.body.category.affected.map((item, indx) => `(${item},'${taskCreationOrder+indx+1}')`).join(",")
+
+        const sql = format(
+            `UPDATE task SET task_order = jsonb_set(CAST(task_order as jsonb), '{%s}', tmp.t_order::jsonb, true)
+            FROM
+            (VALUES %s) AS tmp (id, t_order)
+            WHERE user_id = $1 AND task.id = tmp.id;`,
+            req.body.category.name,
+            affectedParsed
+        )
+
+        console.log(sql)
+
         db.query(
-            "INSERT INTO task(name, details, subject_id, user_id, parent_id, tags) VALUES ($1, $2, $3, $4, $5, $6) returning *;", 
+            sql,
             [
-                req.body.name, 
-                req.body.details,
-                null,
-                userId,
-                null,
-                null
+                userId
             ]
         )
-            .then(result => res.status(201).json({
-                status: "success",
-                msg: "task created",
-                results: result.rows.length,
-                tasks: result.rows
-            }))
-            .catch(() => res.status(500).json({ status: "Db error", msg: "unable to insert task" }))
+            .then(() => db.query(
+                    `INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, task_order) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *;`, 
+                    [
+                        req.body.name, 
+                        req.body.completed,
+                        userId,
+                        req.body.duedate,
+                        req.body.details || null,
+                        null,
+                        null,
+                        null,
+                        json_val,
+                    ]
+                )
+                    .then(result => res.status(201).json({
+                        status: "success",
+                        msg: "task created",
+                        results: result.rows.length,
+                        tasks: result.rows
+                    })))
+            .catch(err => {
+                console.log(err)
+                res.status(500).json({ status: "Db error", msg: "unable to insert task" })
+            })
+    }
+}
+
+const updateTask = (req, res) => {
+    const userId = req.session.passport?.user;
+    if (!req.isAuthenticated() || !userId) 
+        res.status(403).json({
+            status: "forbidden", msg: "unable to access resource as an unatheticated user"
+        });
+    
+    else {
+
     }
 }
 
 module.exports = {
     getAllTasks,
-    addTask
+    addTask,
+    updateTask
 }
