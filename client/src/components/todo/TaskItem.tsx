@@ -16,6 +16,10 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
         if ((e.key === "Delete" || (name === "" && e.key === "Backspace")) && onDelete) onDelete();
     }
 
+    const onItemBlur = () => {
+        if (name === "" && onDelete) onDelete();
+    }
+
     return (
         <div className='flex px-3 py-2.5 hover:bg-gray-100/20 rounded-md items-center space-x-3'>
             <input
@@ -39,6 +43,7 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
                     })}
                     placeholder={id.startsWith("create-task") ? "enter task name here" : "" }
                     onKeyDown={onKeydown} 
+                    onBlur={onItemBlur}
                     type="text" 
                     className='outline-none bg-transparent flex-auto' />
             </div>
