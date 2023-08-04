@@ -4,6 +4,7 @@ import * as yup from "yup";
 import Input from "components/form/Input"
 import { loginUser } from "api/auth";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const schema = yup.object({
     username: yup.string().required().max(25),
@@ -36,7 +37,7 @@ function LoginRoute() {
                 {/* Container Header */}
                 <div className="flex flex-col items-center mb-16">
                     <h1 className="text-5xl my-5">Log In</h1>
-                    <p>Don't have an account? <span>Sign Up</span></p>
+                    <p>Don't have an account? <Link to={"/register"}>Sign Up</Link></p>
                 </div>
 
                 {/* form body */}
