@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 import Input from "components/form/Input"
-import { loginUser, logoutUser, testTasks } from "api/auth";
+import { loginUser } from "api/auth";
 import { useState } from "react";
 
 const schema = yup.object({
@@ -49,8 +49,6 @@ function LoginRoute() {
                     <button type="submit">Login</button>
                 </form>
                 {loginError && (<div className="text-red-400">{loginError.msg}</div>)}
-                <button onClick={() => logoutUser().then(res => console.log(res))}>logout</button>
-                <button onClick={() => testTasks().then(res => console.log(res))}>test task</button>
 
             </div>
         </div>
