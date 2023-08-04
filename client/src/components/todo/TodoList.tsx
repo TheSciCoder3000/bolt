@@ -17,7 +17,7 @@ type FocusInputType = HTMLInputElement | null
 
 function TodoList() {
   const [tasks, setTasks] = useState<todoTask[]>([])
-  const [saving] = useState<SavingStates>("saved")
+  const [saving, setSaving] = useState<SavingStates>("saved")
   const [focusIndx, setFocusIndx] = useState<number|null>(null)
   const focusInput = useRef<FocusInputType[]>([])
   const { todoSec } = useParams()
@@ -40,6 +40,7 @@ function TodoList() {
     const handler = (data: taskState[], taskId?: string, taskIndx?: number) => {
       setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
       if (taskId && taskIndx) {
+        setSaving("saved")
         setFocusIndx(taskIndx)
       }
     }
@@ -62,6 +63,7 @@ function TodoList() {
 
   // inserts an empty task item
   const addTaskCreation = (id: string) => {
+    setSaving("saving")
     if (!todoSec) return 
     const affected = tasks.reduce((prev, current, indx) => {
       if (id === current.id) {
@@ -85,6 +87,7 @@ function TodoList() {
   }
 
   const deleteTaskEvent = (taskId: string) => {
+    setSaving("saving")
     if (!todoSec) return
     const affected = tasks.reduce((prev, current, indx) => {
       if (taskId === current.id) {
