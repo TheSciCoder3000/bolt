@@ -7,6 +7,7 @@ import './index.css'
 import TodoRoute from "routes/TodoRoute.tsx"
 import LoginRoute from 'routes/LoginRoute.tsx'
 import RegisterRoute from 'routes/RegisterRoute.tsx'
+import CourseRoute from 'routes/CourseRoute.tsx'
 
 const router = createBrowserRouter([
   {
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
             element: <TodoRoute />
           }
         ]
+      },
+      {
+        path: "course",
+        element: <CourseRoute />
       }
     ],
   },
