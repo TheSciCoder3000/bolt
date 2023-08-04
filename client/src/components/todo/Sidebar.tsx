@@ -45,8 +45,8 @@ function Sidebar() {
             <div>
                 <h4 className="font-medium text-slate-400/80 mb-2">School</h4>
                 <div>
-                    {subjects.map(subj => (
-                        <Link to={`/app/todo/subj/${subj.id}`} className={({ isActive }) => getClassName(isActive, schoolActiveClass)}>
+                    {subjects.map((subj, indx) => (
+                        <Link key={indx} to={`/app/todo/subj/${subj.id}`} className={({ isActive }) => getClassName(isActive, schoolActiveClass)}>
                             {subj.name}
                         </Link>
                     ))}
@@ -57,8 +57,8 @@ function Sidebar() {
             <div>
                 <h4 className="font-medium text-slate-400/80 mb-2">Personal</h4>
                 <div>
-                    {personal.map(p => (
-                        <div className="block pl-7 py-2 hover:cursor-pointer hover:bg-gray-200/30">
+                    {personal.map((p, indx) => (
+                        <div key={indx} className="block pl-7 py-2 hover:cursor-pointer hover:bg-gray-200/30">
                             {p.name}
                         </div>
                     ))}
