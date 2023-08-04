@@ -1,19 +1,29 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 interface TaskItemProps {
     id: string;
     name: string;
     completed: boolean;
-    insertTaskCreation?: () => void // event trigger to add a task item below the instance
-    onChange: (newData: {name: string, completed: boolean}) => void
-    onDelete?: () => void
+    insertTaskCreation?: () => void; // event trigger to add a task item below the instance
+    onChange: (newData: {name: string, completed: boolean}) => void;
+    onDelete?: () => void;
+    onUpdate?: (id: string, name: string, completed: boolean) => void;
+    focusOnItem?: (amnt: number) => void
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ id, name, completed, insertTaskCreation, onChange, onDelete }) => {
+const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete, onUpdate, focusOnItem }, ref) => {
     // add task on enter key pressed and delete on delete key
     const onKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (onUpdate) onUpdate(id, name, completed);
+        if (e.key == "ArrowUp" && focusOnItem) focusOnItem(-1)
+        if (e.key == "ArrowDown" && focusOnItem) focusOnItem(1)
         if (e.key == "Enter" && insertTaskCreation) insertTaskCreation()
         if ((e.key === "Delete" || (name === "" && e.key === "Backspace")) && onDelete) onDelete();
+    }
+
+    const onItemBlur = () => {
+        if (name === "" && onDelete) onDelete();
+        else if (onUpdate) onUpdate(id, name, completed);
     }
 
     return (
@@ -25,24 +35,26 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, name, completed, insertTaskCrea
                 `}
                 type="checkbox" 
                 checked={completed}
-                onClick={() => onChange({
-                    name: name,
-                    completed: !completed
-                })} />
+                onClick={() => {
+                    onChange({name: name, completed: !completed})
+                    if (onUpdate) onUpdate(id, name, !completed);
+                }} />
             <div className='peer-checked:text-gray-400/70 flex-auto flex'>
                 <input 
                     value={name}
+                    ref={ref}
                     onChange={e => onChange({
                         name: e.target.value,
                         completed
                     })}
                     placeholder={id.startsWith("create-task") ? "enter task name here" : "" }
                     onKeyDown={onKeydown} 
+                    onBlur={onItemBlur}
                     type="text" 
                     className='outline-none bg-transparent flex-auto' />
             </div>
         </div>
     )
-}
+})
 
 export default TaskItem

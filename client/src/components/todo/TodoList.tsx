@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import TaskItem from "./TaskItem"
 import { taskState } from "store/task.slice";
-// import { v4 as uuidv4 } from 'uuid';
-import { connect } from "socket.io-client";
 import { useParams } from "react-router-dom";
 import { getDateFromString } from "util";
+import { useSocketIo, useSocketOn } from "hooks/socket";
 
 interface todoTask {
   id: string;
@@ -13,44 +12,43 @@ interface todoTask {
 }
 
 type SavingStates = "saving" | "failed" | "saved"
-
+type FocusInputType = HTMLInputElement | null
 
 function TodoList() {
   const [tasks, setTasks] = useState<todoTask[]>([])
-  const [saving] = useState<SavingStates>("saved")
+  const [saving, setSaving] = useState<SavingStates>("saved")
+  const [focusIndx, setFocusIndx] = useState<number|null>(null)
+  const focusInput = useRef<FocusInputType[]>([])
   const { todoSec } = useParams()
   
   // Socket.io hooks
-  const [socket, setSocket] = useState<ReturnType<typeof connect> | null>(null)
+  const receiveTaskHanlder = (data: taskState[], taskId?: string, taskIndx?: number) => {
+    setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
+    if (taskId && taskIndx) {
+      setSaving("saved")
+      setFocusIndx(taskIndx)
+    }
+  }
+
+  const socket = useSocketIo()
+  useSocketOn(socket, "receive-tasks", receiveTaskHanlder)
+
   useEffect(() => {
-    const s = connect("http://localhost:3005", {
-      withCredentials: true
-    })
-    setSocket(s)
-    return () => {
-      s.disconnect()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!socket || !todoSec) return
-
-    const handler = (data: taskState[]) => {
-      setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
-    }
-
-    socket.on("receive-tasks", handler)
-
-    socket.emit("fetch-tasks", todoSec, getDateFromString(todoSec))
-
-    return () => {
-      socket.off("receive-tasks", handler)
-    }
+    if (!todoSec) return
+    socket?.emit("fetch-tasks", todoSec, getDateFromString(todoSec))
   }, [socket, todoSec])
+
+  useEffect(() => {
+    if (focusIndx === null) return
+    focusInput.current[focusIndx]?.focus()
+    setFocusIndx(null) 
+  }, [focusIndx])
 
 
   // inserts an empty task item
   const addTaskCreation = (id: string) => {
+    setSaving("saving")
+    if (!todoSec) return 
     const affected = tasks.reduce((prev, current, indx) => {
       if (id === current.id) {
         const task_order = {} as {[key: string]: number}
@@ -67,11 +65,14 @@ function TodoList() {
       duedate: date.toISOString().split("T")[0], 
       task_order: affected.task_order,
       category: todoSec,
-      preData: null
+      preData: null,
+      dateRange: getDateFromString(todoSec)
     })
   }
 
   const deleteTaskEvent = (taskId: string) => {
+    setSaving("saving")
+    if (!todoSec) return
     const affected = tasks.reduce((prev, current, indx) => {
       if (taskId === current.id) {
         const task_order = {} as {[key: string]: number}
@@ -86,13 +87,16 @@ function TodoList() {
       category: todoSec,
       id: taskId,
       task_order: affected.task_order,
-      affected: affected.arr
+      affected: affected.arr,
+      dateRange: getDateFromString(todoSec)
     })
   }
 
   const onTaskItemValChange = (newData: {name: string, completed: boolean}, item_pos: number) => {
     setTasks(state => state.map((item, indx) => {
-      if (item_pos === indx) return {...item, ...newData}
+      if (item_pos === indx) {
+        return {...item, ...newData}
+      }
       return item;
     }))
   }
@@ -111,6 +115,20 @@ function TodoList() {
     })
   }
 
+  const updateEvent = (taskId: string, taskName: string, taskCompleted: boolean) => {
+    socket?.emit("update-task", {
+      id: taskId,
+      name: taskName,
+      completed: taskCompleted
+    })
+  }
+
+  const changeFocusEvent = (pos: number) => {
+    console.log(pos < 0 || pos > (tasks.length-1))
+    if (pos < 0 || pos > (tasks.length-1)) return
+    setFocusIndx(pos)
+  }
+
   return (
     <div className="flex-auto">
       <div className="p-10">
@@ -124,9 +142,14 @@ function TodoList() {
             <TaskItem 
               key={task.id} 
               id={task.id}
+              ref={refEl => focusInput.current[indx] = refEl}
               name={task.name}
               completed={task.completed}
-              insertTaskCreation={() => addTaskCreation(task.id)}
+              insertTaskCreation={() => {
+                addTaskCreation(task.id)
+              }}
+              onUpdate={updateEvent}
+              focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt)}
               onChange={newData => onTaskItemValChange(newData, indx)}
               onDelete={() => deleteTaskEvent(task.id)} />
           ))}
