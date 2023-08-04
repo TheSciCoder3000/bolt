@@ -4,20 +4,23 @@ interface TaskItemProps {
     id: string;
     name: string;
     completed: boolean;
-    insertTaskCreation?: () => void // event trigger to add a task item below the instance
-    onChange: (newData: {name: string, completed: boolean}) => void
-    onDelete?: () => void
+    insertTaskCreation?: () => void; // event trigger to add a task item below the instance
+    onChange: (newData: {name: string, completed: boolean}) => void;
+    onDelete?: () => void;
+    onUpdate?: (id: string, name: string, completed: boolean) => void;
 }
 
-const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete }, ref) => {
+const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete, onUpdate }, ref) => {
     // add task on enter key pressed and delete on delete key
     const onKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (onUpdate) onUpdate(id, name, completed);
         if (e.key == "Enter" && insertTaskCreation) insertTaskCreation()
         if ((e.key === "Delete" || (name === "" && e.key === "Backspace")) && onDelete) onDelete();
     }
 
     const onItemBlur = () => {
         if (name === "" && onDelete) onDelete();
+        else if (onUpdate) onUpdate(id, name, completed);
     }
 
     return (
@@ -29,10 +32,10 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
                 `}
                 type="checkbox" 
                 checked={completed}
-                onClick={() => onChange({
-                    name: name,
-                    completed: !completed
-                })} />
+                onClick={() => {
+                    onChange({name: name, completed: !completed})
+                    if (onUpdate) onUpdate(id, name, !completed);
+                }} />
             <div className='peer-checked:text-gray-400/70 flex-auto flex'>
                 <input 
                     value={name}

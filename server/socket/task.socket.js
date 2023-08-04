@@ -109,10 +109,32 @@ const deleteSocketTask = (socket) => async (data) => {
     }
 }
 
+const updateSocketTask = (socket) => async (data) => {
+    const userId = socket.request.session.passport.user
+    const client = await db.getClient();
 
+    try {
+        await client.query("BEGIN");
+
+        await client.query(
+            "UPDATE task SET name = $1, completed = $2 WHERE user_id = $3 AND id = $4;",
+            [data.name, data.completed, userId, data.id]
+        )
+
+        await client.query("COMMIT")
+
+    } catch (e) {
+        await client.query("ROLLBACK");
+        console.log("udpate task error");
+        console.log(e);
+    } finally {
+        client.release();
+    }
+}
 
 module.exports = (io, socket) => {
     socket.on('fetch-tasks', fetchSocketTask(socket));
     socket.on("create-task", createSocketTask(socket));
-    socket.on("delete-task", deleteSocketTask(socket))
+    socket.on("delete-task", deleteSocketTask(socket));
+    socket.on("update-task", updateSocketTask(socket));
 }
