@@ -3,6 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 import Input from "components/form/Input"
 import { registerUser, testTasks } from "api/auth";
+import { Link, useNavigate } from "react-router-dom";
 
 const schema = yup.object({
     username: yup.string().required().max(25),
@@ -14,9 +15,14 @@ function RegisterRoute() {
     const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
         resolver: yupResolver(schema)
     });
+    const navigate = useNavigate()
 
     const onSubmit = (data: FormData) => {
-        registerUser(data.username, data.password).then(res => console.log(res))
+        registerUser(data.username, data.password)
+            .then(res => {
+                console.log(res)
+                navigate("/login")
+            })
     };
 
     return (
@@ -24,8 +30,8 @@ function RegisterRoute() {
             <div className="py-10 px-48 border rounded-md">
                 {/* Container Header */}
                 <div className="flex flex-col items-center mb-16">
-                    <h1 className="text-5xl my-5">Sign In</h1>
-                    <p>Already have an account? <span>Log In</span></p>
+                    <h1 className="text-5xl my-5">Sign Up</h1>
+                    <p>Already have an account? <Link to={"/login"}>Log In</Link></p>
                 </div>
 
                 {/* form body */}

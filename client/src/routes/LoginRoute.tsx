@@ -4,7 +4,7 @@ import * as yup from "yup";
 import Input from "components/form/Input"
 import { loginUser } from "api/auth";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const schema = yup.object({
     username: yup.string().required().max(25),
@@ -23,11 +23,15 @@ function LoginRoute() {
         resolver: yupResolver(schema)
     });
     const [loginError, setloginError] = useState<LoginErrorState>(null);
+    const navigate = useNavigate()
 
     const onSubmit = (data: FormData) => {
         setloginError(null);
         loginUser(data.username, data.password)
-            .then(res => console.log(res))
+            .then(res => {
+                console.log(res)
+                navigate("/app")
+            })
             .catch(e => setloginError(e.response.data));
     };
 
