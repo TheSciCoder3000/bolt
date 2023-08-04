@@ -29,14 +29,42 @@ export function getStartDate(date: Date) {
     return new Date(`${year}-${month}-${day}`)
 }
 
-export function getTodayRange() {
+export function getTodayDate() {
     const date = new Date();
-    const offset = date.getTimezoneOffset();
-    const today = getStartDate(new Date(Date.now() + offset));
-    const tom = getStartDate(new Date(Date.now() + (3600 * 1000 * 24) + offset));
+    return [date.toISOString().split("T")[0]]
+}
 
-    return {
-        today: getTIMESTAMPTZ(today),
-        tom: getTIMESTAMPTZ(tom)
+export function getTomDate() {
+    const date = new Date();
+    const tom = new Date();
+    tom.setDate(date.getDate() + 1);
+    return [tom.toISOString().split("T")[0]]
+}
+
+export function getWeekDateRange() {
+    const now = new Date();
+    const start = new Date();
+    const end = new Date();
+    const day = now.getDay();
+
+    start.setDate(now.getDate() - day);
+    end.setDate(now.getDate() + (6-day));
+
+    return [
+        start.toISOString().split("T")[0],
+        end.toISOString().split("T")[0]
+    ]
+}
+
+export function getDateFromString(todo: string) {
+    switch (todo) {
+        case "today":
+            return getTodayDate();
+        case "tomorrow":
+            return getTomDate();
+        case "week":
+            return getWeekDateRange();
+        default:
+            throw new Error("Parameter contains invalid string")
     }
 }

@@ -2,22 +2,24 @@ const db = require("../model");
 const format = require("pg-format");
 
 // helper function
-const prefectchTaskData = (dbClient, userId, category) => {
-    const sql = format(
-        "SELECT * FROM task WHERE user_id = $1 ORDER BY task_order ->> '%s';",
-        category
-    )
-    return dbClient.query(sql, [userId]).then(result => result.rows)
+const prefectchTaskData = (dbClient, userId, category, dateRange) => {
+    const sqlString = dateRange.length > 1 ?
+        "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY task_order ->> '%s';" :
+        "SELECT * FROM task WHERE user_id = $1 AND duedate = $2 ORDER BY task_order ->> '%s';"
+
+    const sql = format(sqlString, category)
+    return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows)
 }
 
 // ========================= Sockets ========================= 
-const fetchSocketTask = (socket) => async (category) => {
+const fetchSocketTask = (socket) => async (category, dateRange) => {
     const taskData = await prefectchTaskData(
         db, 
         socket.request.session.passport.user,
-        category
+        category,
+        dateRange
     )
-        .catch(() => res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" }));
+        .catch(err => console.log(err));
     socket.emit("receive-tasks", taskData);
 }
 

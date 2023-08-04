@@ -4,6 +4,7 @@ import { taskState } from "store/task.slice";
 // import { v4 as uuidv4 } from 'uuid';
 import { connect } from "socket.io-client";
 import { useParams } from "react-router-dom";
+import { getDateFromString } from "util";
 
 interface todoTask {
   id: string;
@@ -13,28 +14,39 @@ interface todoTask {
 
 type SavingStates = "saving" | "failed" | "saved"
 
-const socket = connect("http://localhost:3005", {
-  withCredentials: true
-})
-
 
 function TodoList() {
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [saving] = useState<SavingStates>("saved")
   const { todoSec } = useParams()
+  
+  // Socket.io hooks
+  const [socket, setSocket] = useState<ReturnType<typeof connect> | null>(null)
+  useEffect(() => {
+    const s = connect("http://localhost:3005", {
+      withCredentials: true
+    })
+    setSocket(s)
+    return () => {
+      s.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
-    socket.on("receive-tasks", (data: taskState[]) => {
-      setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
-    })
+    if (!socket || !todoSec) return
 
-    socket.emit("fetch-tasks", todoSec)
+    const handler = (data: taskState[]) => {
+      setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
+    }
+
+    socket.on("receive-tasks", handler)
+
+    socket.emit("fetch-tasks", todoSec, getDateFromString(todoSec))
 
     return () => {
-      socket.removeAllListeners("receive-tasks")
+      socket.off("receive-tasks", handler)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket])
+  }, [socket, todoSec])
 
 
   // inserts an empty task item
@@ -50,7 +62,7 @@ function TodoList() {
     }, {found: false, arr: [] as string[], task_order: {} as {[key:string]: number}})
     const date = new Date()
 
-    socket.emit("create-task", {
+    socket?.emit("create-task", {
       affected: affected.arr, 
       duedate: date.toISOString().split("T")[0], 
       task_order: affected.task_order,
@@ -70,7 +82,7 @@ function TodoList() {
       return prev
     }, {found: false, arr: [] as string[], task_order: {} as {[key:string]: number}})
 
-    socket.emit("delete-task", {
+    socket?.emit("delete-task", {
       category: todoSec,
       id: taskId,
       task_order: affected.task_order,
@@ -90,7 +102,7 @@ function TodoList() {
     const task_order = {} as {[key: string]: number}
     if (todoSec) task_order[todoSec] = 0
     // console.log(newData)
-    socket.emit("create-task", {
+    socket?.emit("create-task", {
       affected: [],
       duedate: date.toISOString().split("T")[0],
       task_order,
