@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import TaskItem from "./TaskItem"
 import { taskState } from "store/task.slice";
 // import { v4 as uuidv4 } from 'uuid';
 import { connect } from "socket.io-client";
 import { useParams } from "react-router-dom";
 import { getDateFromString } from "util";
-
-// test edit
 
 interface todoTask {
   id: string;
@@ -15,11 +13,13 @@ interface todoTask {
 }
 
 type SavingStates = "saving" | "failed" | "saved"
-
+type FocusInputType = HTMLInputElement | null
 
 function TodoList() {
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [saving] = useState<SavingStates>("saved")
+  const [focusIndx, setFocusIndx] = useState<number|null>(null)
+  const focusInput = useRef<FocusInputType[]>([])
   const { todoSec } = useParams()
   
   // Socket.io hooks
@@ -37,8 +37,11 @@ function TodoList() {
   useEffect(() => {
     if (!socket || !todoSec) return
 
-    const handler = (data: taskState[]) => {
+    const handler = (data: taskState[], taskId?: string, taskIndx?: number) => {
       setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
+      if (taskId && taskIndx) {
+        setFocusIndx(taskIndx)
+      }
     }
 
     socket.on("receive-tasks", handler)
@@ -50,9 +53,16 @@ function TodoList() {
     }
   }, [socket, todoSec])
 
+  useEffect(() => {
+    if (!focusIndx) return
+    focusInput.current[focusIndx]?.focus()
+    setFocusIndx(null) 
+  }, [focusIndx])
+
 
   // inserts an empty task item
   const addTaskCreation = (id: string) => {
+    if (!todoSec) return 
     const affected = tasks.reduce((prev, current, indx) => {
       if (id === current.id) {
         const task_order = {} as {[key: string]: number}
@@ -69,11 +79,13 @@ function TodoList() {
       duedate: date.toISOString().split("T")[0], 
       task_order: affected.task_order,
       category: todoSec,
-      preData: null
+      preData: null,
+      dateRange: getDateFromString(todoSec)
     })
   }
 
   const deleteTaskEvent = (taskId: string) => {
+    if (!todoSec) return
     const affected = tasks.reduce((prev, current, indx) => {
       if (taskId === current.id) {
         const task_order = {} as {[key: string]: number}
@@ -88,7 +100,8 @@ function TodoList() {
       category: todoSec,
       id: taskId,
       task_order: affected.task_order,
-      affected: affected.arr
+      affected: affected.arr,
+      dateRange: getDateFromString(todoSec)
     })
   }
 
@@ -126,9 +139,12 @@ function TodoList() {
             <TaskItem 
               key={task.id} 
               id={task.id}
+              ref={refEl => focusInput.current[indx] = refEl}
               name={task.name}
               completed={task.completed}
-              insertTaskCreation={() => addTaskCreation(task.id)}
+              insertTaskCreation={() => {
+                addTaskCreation(task.id)
+              }}
               onChange={newData => onTaskItemValChange(newData, indx)}
               onDelete={() => deleteTaskEvent(task.id)} />
           ))}

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 interface TaskItemProps {
     id: string;
@@ -9,7 +9,7 @@ interface TaskItemProps {
     onDelete?: () => void
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ id, name, completed, insertTaskCreation, onChange, onDelete }) => {
+const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete }, ref) => {
     // add task on enter key pressed and delete on delete key
     const onKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter" && insertTaskCreation) insertTaskCreation()
@@ -32,6 +32,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, name, completed, insertTaskCrea
             <div className='peer-checked:text-gray-400/70 flex-auto flex'>
                 <input 
                     value={name}
+                    ref={ref}
                     onChange={e => onChange({
                         name: e.target.value,
                         completed
@@ -43,6 +44,6 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, name, completed, insertTaskCrea
             </div>
         </div>
     )
-}
+})
 
 export default TaskItem

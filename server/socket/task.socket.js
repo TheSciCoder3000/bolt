@@ -31,9 +31,9 @@ const createSocketTask = (socket) => async (data) => {
 
     try {
         await client.query("BEGIN");
-        await client.query(
+        const taskId = await client.query(
             `INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, task_order) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *;`, 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, 
             [
                 data.preData?.name || "", 
                 data.preData?.completed || false,
@@ -62,8 +62,8 @@ const createSocketTask = (socket) => async (data) => {
 
         await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.category)
-        socket.emit("receive-tasks", taskData);
+        const taskData = await prefectchTaskData(client, userId, data.category, data.dateRange)
+        socket.emit("receive-tasks", taskData, taskId, data.task_order[data.category]);
     } catch (e) {
         await client.query("ROLLBACK");
         console.log("Insert task error")
@@ -81,7 +81,7 @@ const deleteSocketTask = (socket) => async (data) => {
     try {
         await client.query("BEGIN");
 
-        await client.query("DELETE FROM task WHERE id = $1 AND user_id = $2", [data.id, userId])
+        await client.query("DELETE FROM task WHERE id = $1 AND user_id = $2;", [data.id, userId])
 
         if (data.affected.length > 0) {
             const sql = format(
@@ -97,9 +97,9 @@ const deleteSocketTask = (socket) => async (data) => {
 
         await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.category)
+        const taskData = await prefectchTaskData(client, userId, data.category, data.dateRange)
 
-        socket.emit("receive-tasks", taskData);
+        socket.emit("receive-tasks", taskData, data.id, data.task_order[data.category]-1);
     } catch (e) {
         await client.query("ROLLBACK")
         console.log(e)
