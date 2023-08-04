@@ -5,6 +5,7 @@ import Input from "components/form/Input"
 import { loginUser } from "api/auth";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Button from "components/form/Button";
 
 const schema = yup.object({
     username: yup.string().required().max(25),
@@ -41,17 +42,19 @@ function LoginRoute() {
                 {/* Container Header */}
                 <div className="flex flex-col items-center mb-16">
                     <h1 className="text-5xl my-5">Log In</h1>
-                    <p>Don't have an account? <Link to={"/register"}>Sign Up</Link></p>
+                    <p>Don't have an account? <Link className="text-blue-600 hover:text-blue-600/70" to={"/register"}>Sign Up</Link></p>
                 </div>
 
                 {/* form body */}
                 <form
-                    className="flex flex-col mb-16 space-y-2"
+                    className="flex flex-col mb-16 space-y-6"
                     action=""
                     onSubmit={handleSubmit(onSubmit)}>
-                    <Input type="text" placeholder="Username" {...register("username")} error={errors.username?.message}/>
-                    <Input type="password" placeholder="Password" {...register("password")} error={errors.password?.message}/>
-                    <button type="submit">Login</button>
+                        <div className="space-y-2">
+                            <Input type="text" placeholder="Username" {...register("username")} error={errors.username?.message}/>
+                            <Input type="password" placeholder="Password" {...register("password")} error={errors.password?.message}/>
+                        </div>
+                        <Button type="submit">Login</Button>
                 </form>
                 {loginError && (<div className="text-red-400">{loginError.msg}</div>)}
 
