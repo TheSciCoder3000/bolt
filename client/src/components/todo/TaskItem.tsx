@@ -8,12 +8,15 @@ interface TaskItemProps {
     onChange: (newData: {name: string, completed: boolean}) => void;
     onDelete?: () => void;
     onUpdate?: (id: string, name: string, completed: boolean) => void;
+    focusOnItem?: (amnt: number) => void
 }
 
-const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete, onUpdate }, ref) => {
+const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete, onUpdate, focusOnItem }, ref) => {
     // add task on enter key pressed and delete on delete key
     const onKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (onUpdate) onUpdate(id, name, completed);
+        if (e.key == "ArrowUp" && focusOnItem) focusOnItem(-1)
+        if (e.key == "ArrowDown" && focusOnItem) focusOnItem(1)
         if (e.key == "Enter" && insertTaskCreation) insertTaskCreation()
         if ((e.key === "Delete" || (name === "" && e.key === "Backspace")) && onDelete) onDelete();
     }

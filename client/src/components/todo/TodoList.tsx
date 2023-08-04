@@ -39,7 +39,7 @@ function TodoList() {
   }, [socket, todoSec])
 
   useEffect(() => {
-    if (!focusIndx) return
+    if (focusIndx === null) return
     focusInput.current[focusIndx]?.focus()
     setFocusIndx(null) 
   }, [focusIndx])
@@ -123,6 +123,12 @@ function TodoList() {
     })
   }
 
+  const changeFocusEvent = (pos: number) => {
+    console.log(pos < 0 || pos > (tasks.length-1))
+    if (pos < 0 || pos > (tasks.length-1)) return
+    setFocusIndx(pos)
+  }
+
   return (
     <div className="flex-auto">
       <div className="p-10">
@@ -143,6 +149,7 @@ function TodoList() {
                 addTaskCreation(task.id)
               }}
               onUpdate={updateEvent}
+              focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt)}
               onChange={newData => onTaskItemValChange(newData, indx)}
               onDelete={() => deleteTaskEvent(task.id)} />
           ))}
