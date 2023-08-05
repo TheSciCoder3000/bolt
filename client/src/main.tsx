@@ -7,6 +7,7 @@ import './index.css'
 import TodoRoute from "routes/TodoRoute.tsx"
 import LoginRoute from 'routes/LoginRoute.tsx'
 import RegisterRoute from 'routes/RegisterRoute.tsx'
+import { fetchUserApi } from 'api/auth.ts'
 
 const router = createBrowserRouter([
   {
@@ -40,11 +41,17 @@ const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <LoginRoute />
+    element: <LoginRoute />,
+    loader: async () => {
+      return await fetchUserApi()
+    }
   },
   {
     path: "/register",
-    element: <RegisterRoute />
+    element: <RegisterRoute />,
+    loader: async () => {
+      return await fetchUserApi()
+    }
   }
 ]);
 
