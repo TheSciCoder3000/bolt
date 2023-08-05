@@ -1,5 +1,12 @@
 const TaskSocket = require("./task.socket");
 
+/**
+ * @typedef {import("../server").Server} Server
+ */
+/**
+ * 
+ * @param {Server} io 
+ */
 module.exports = (io) => {
     io.on('connection', (socket) => {
         console.log(`new connection ${socket.id}`);
