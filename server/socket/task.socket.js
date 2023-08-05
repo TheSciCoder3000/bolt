@@ -2,21 +2,19 @@ const db = require("../model");
 const format = require("pg-format");
 
 // helper function
-const prefectchTaskData = (dbClient, userId, category, dateRange) => {
-    const sqlString = dateRange.length > 1 ?
-        "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY task_order ->> '%s';" :
-        "SELECT * FROM task WHERE user_id = $1 AND duedate = $2 ORDER BY task_order ->> '%s';"
-
-    const sql = format(sqlString, category)
-    return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows)
+const prefectchTaskData = (dbClient, userId, dateRange) => {
+    const sql= dateRange.length > 1 ?
+        "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY task_order;" :
+        "SELECT * FROM task WHERE user_id = $1 AND duedate = $2 ORDER BY task_order;"
+    
+    return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
 }
 
 // ========================= Sockets ========================= 
-const fetchSocketTask = (socket) => async (category, dateRange) => {
+const fetchSocketTask = (socket) => async (dateRange) => {
     const taskData = await prefectchTaskData(
         db, 
         socket.request.session.passport.user,
-        category,
         dateRange
     )
         .catch(err => console.log(err));
@@ -27,7 +25,8 @@ const createSocketTask = (socket) => async (data) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
 
-    const affectedParsed = data.affected.map((item, indx) => `(${item},'${data.task_order[data.category]+indx+1}')`).join(",")
+    const affectedParsed = data.affected.map((item, indx) => `(${item},${data.task_order+indx+1})`).join(",")
+    console.log(data)
 
     try {
         await client.query("BEGIN");
@@ -49,11 +48,10 @@ const createSocketTask = (socket) => async (data) => {
 
         if (data.affected.length > 0) {
             const sql = format(
-                `UPDATE task SET task_order = jsonb_set(CAST(task_order as jsonb), '{%s}', tmp.t_order::jsonb, true)
+                `UPDATE task SET task_order = t_order
                 FROM
                 (VALUES %s) AS tmp (id, t_order)
                 WHERE user_id = $1 AND task.id = tmp.id;`,
-                data.category,
                 affectedParsed
             )
     
@@ -62,8 +60,8 @@ const createSocketTask = (socket) => async (data) => {
 
         await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.category, data.dateRange)
-        socket.emit("receive-tasks", taskData, taskId, data.task_order[data.category]);
+        const taskData = await prefectchTaskData(client, userId, data.dateRange)
+        socket.emit("receive-tasks", taskData, taskId, data.task_order);
     } catch (e) {
         await client.query("ROLLBACK");
         console.log("Insert task error")
@@ -76,7 +74,7 @@ const createSocketTask = (socket) => async (data) => {
 const deleteSocketTask = (socket) => async (data) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
-    const affectedParsed = data.affected.map((item, indx) => `(${item},'${data.task_order[data.category]+indx-1}')`).join(",")
+    const affectedParsed = data.affected.map((item, indx) => `(${item},${data.task_order+indx-1})`).join(",")
 
     try {
         await client.query("BEGIN");
@@ -85,11 +83,10 @@ const deleteSocketTask = (socket) => async (data) => {
 
         if (data.affected.length > 0) {
             const sql = format(
-                `UPDATE task SET task_order = jsonb_set(CAST(task_order as jsonb), '{%s}', tmp.t_order::jsonb, true)
+                `UPDATE task SET task_order = t_order
                 FROM
                 (VALUES %s) AS tmp (id, t_order)
                 WHERE user_id = $1 AND task.id = tmp.id;`,
-                data.category,
                 affectedParsed
             )
             await client.query(sql, [userId])
@@ -97,11 +94,12 @@ const deleteSocketTask = (socket) => async (data) => {
 
         await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.category, data.dateRange)
+        const taskData = await prefectchTaskData(client, userId, data.dateRange)
 
-        socket.emit("receive-tasks", taskData, data.id, data.task_order[data.category]-1);
+        socket.emit("receive-tasks", taskData, data.id, data.task_order-1);
     } catch (e) {
         await client.query("ROLLBACK")
+        console.log("delete task error")
         console.log(e)
         throw e
     } finally {

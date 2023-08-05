@@ -23,6 +23,7 @@ function TodoList() {
   
   // Socket.io hooks
   const receiveTaskHanlder = (data: taskState[], taskId?: string, taskIndx?: number) => {
+    console.log(data)
     setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
     if (taskId && taskIndx) {
       setSaving("saved")
@@ -35,7 +36,7 @@ function TodoList() {
 
   useEffect(() => {
     if (!todoSec) return
-    socket?.emit("fetch-tasks", todoSec, getDateFromString(todoSec))
+    socket?.emit("fetch-tasks", getDateFromString(todoSec))
   }, [socket, todoSec])
 
   useEffect(() => {
@@ -51,13 +52,12 @@ function TodoList() {
     if (!todoSec) return 
     const affected = tasks.reduce((prev, current, indx) => {
       if (id === current.id) {
-        const task_order = {} as {[key: string]: number}
-        if (todoSec) task_order[todoSec] = indx + 1 || 0
+        const task_order = indx + 1;
         return {...prev, found: true, task_order}
       }
       else if (prev.found) return {...prev, arr: [...prev.arr, current.id]}
       return prev
-    }, {found: false, arr: [] as string[], task_order: {} as {[key:string]: number}})
+    }, {found: false, arr: [] as string[], task_order: 0})
     const date = new Date()
 
     socket?.emit("create-task", {
@@ -75,13 +75,12 @@ function TodoList() {
     if (!todoSec) return
     const affected = tasks.reduce((prev, current, indx) => {
       if (taskId === current.id) {
-        const task_order = {} as {[key: string]: number}
-        if (todoSec) task_order[todoSec] = indx + 1 || 0
+        const task_order = indx + 1
         return {...prev, found: true, task_order}
       }
       else if (prev.found) return {...prev, arr: [...prev.arr, current.id]}
       return prev
-    }, {found: false, arr: [] as string[], task_order: {} as {[key:string]: number}})
+    }, {found: false, arr: [] as string[], task_order: 0})
 
     socket?.emit("delete-task", {
       category: todoSec,
@@ -102,16 +101,17 @@ function TodoList() {
   }
 
   const onTaskAloneValueChange = (newData: {name: string, completed: boolean}) => {
+    if (!todoSec) return
     const date = new Date()
-    const task_order = {} as {[key: string]: number}
-    if (todoSec) task_order[todoSec] = 0
+    const task_order = 0
     // console.log(newData)
     socket?.emit("create-task", {
       affected: [],
       duedate: date.toISOString().split("T")[0],
       task_order,
       category: todoSec,
-      preData: newData
+      preData: newData,
+      dateRange: getDateFromString(todoSec)
     })
   }
 
