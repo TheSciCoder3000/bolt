@@ -2,19 +2,21 @@ import { useEffect, useRef, useState } from "react"
 import TaskItem from "./TaskItem"
 import { taskState } from "store/task.slice";
 import { useParams } from "react-router-dom";
-import { getDateFromString } from "util";
+import { dateToString, getDateFromString } from "util";
 import { useSocketIo, useSocketOn } from "hooks/socket";
 
 interface todoTask {
   id: string;
   name: string;
   completed: boolean;
+  duedate: string;
 }
 
 type SavingStates = "saving" | "failed" | "saved"
 type FocusInputType = HTMLInputElement | null
 
 function TodoList() {
+  const [category, setCategory] = useState<string[]>([])
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [saving, setSaving] = useState<SavingStates>("saved")
   const [focusIndx, setFocusIndx] = useState<number|null>(null)
@@ -23,8 +25,11 @@ function TodoList() {
   
   // Socket.io hooks
   const receiveTaskHanlder = (data: taskState[], taskId?: string, taskIndx?: number) => {
-    console.log(data)
-    setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed })))
+    setCategory(data.reduce((total, current) => {
+      if (!total.includes(current.duedate)) return [...total, current.duedate]
+      return total
+    }, [] as string[]))
+    setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed, duedate: item.duedate })));
     if (taskId && taskIndx) {
       setSaving("saved")
       setFocusIndx(taskIndx)
@@ -133,30 +138,42 @@ function TodoList() {
     <div className="flex-auto">
       <div className="p-10">
         <div className="mb-12">
-          <h1 className="text-6xl tracking-wide">Today</h1>
+          <h1 className="text-6xl tracking-wide">{(todoSec?.charAt(0).toUpperCase()) + (todoSec?.slice(1) || "")}</h1>
         </div>
         {saving}
+
         <hr className="mb-3"/>
-        <div className="space-y-3">
-          {tasks.map((task, indx) => (
-            <TaskItem 
-              key={task.id} 
-              id={task.id}
-              ref={refEl => focusInput.current[indx] = refEl}
-              name={task.name}
-              completed={task.completed}
-              insertTaskCreation={() => {
-                addTaskCreation(task.id)
-              }}
-              onUpdate={updateEvent}
-              focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt)}
-              onChange={newData => onTaskItemValChange(newData, indx)}
-              onDelete={() => deleteTaskEvent(task.id)} />
+
+        <div className="mt-7 space-y-2">
+          {category.map(cat => (
+            <div>
+              {todoSec && !['today', 'tomorrow'].includes(todoSec) && (
+                <h4 className="text-xs font-bold text-gray-400/70 tracking-wide">{dateToString(cat.split("T")[0])}</h4>
+              )}
+              <div className="mt-1 space-y-1">
+                {tasks.map((task, indx) => cat === task.duedate && (
+                  <TaskItem 
+                    key={task.id} 
+                    id={task.id}
+                    ref={refEl => focusInput.current[indx] = refEl}
+                    name={task.name}
+                    completed={task.completed}
+                    insertTaskCreation={() => {
+                      addTaskCreation(task.id)
+                    }}
+                    onUpdate={updateEvent}
+                    focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt)}
+                    onChange={newData => onTaskItemValChange(newData, indx)}
+                    onDelete={() => deleteTaskEvent(task.id)} />
+                ))}
+              </div>
+            </div>
           ))}
           {tasks.length === 0 && (
             <TaskItem id="create-task-initial" name="" completed={false} onChange={newData => onTaskAloneValueChange(newData)} />
           )}
         </div>
+
       </div>
     </div>
   )

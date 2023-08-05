@@ -31,14 +31,18 @@ export function getStartDate(date: Date) {
 
 export function getTodayDate() {
     const date = new Date();
-    return [date.toISOString().split("T")[0]]
+    const tom = new Date();
+    tom.setDate(date.getDate() + 1);
+    return [date.toISOString().split("T")[0], tom.toISOString().split("T")[0]]
 }
 
 export function getTomDate() {
     const date = new Date();
     const tom = new Date();
+    const end = new Date();
     tom.setDate(date.getDate() + 1);
-    return [tom.toISOString().split("T")[0]]
+    end.setDate(date.getDate() + 2);
+    return [tom.toISOString().split("T")[0], end.toISOString().split("T")[0]]
 }
 
 export function getWeekDateRange() {
@@ -48,7 +52,7 @@ export function getWeekDateRange() {
     const day = now.getDay();
 
     start.setDate(now.getDate() - day);
-    end.setDate(now.getDate() + (6-day));
+    end.setDate(now.getDate() + (7-day));
 
     return [
         start.toISOString().split("T")[0],
@@ -67,4 +71,11 @@ export function getDateFromString(todo: string) {
         default:
             throw new Error("Parameter contains invalid string")
     }
+}
+
+export function dateToString(dateString: string) {
+    const date = new Date(dateString);
+    const offset = date.getTimezoneOffset() / 60;
+    date.setHours(date.getHours() + offset);
+    return date.toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"})
 }

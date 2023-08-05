@@ -81,7 +81,7 @@ const createSocketTask = (socket) => {
                     data.preData?.name || "", 
                     data.preData?.completed || false,
                     userId,
-                    data.duedate,
+                    `${data.duedate} 00:00:00.000000+00`,
                     null,
                     null,
                     null,
