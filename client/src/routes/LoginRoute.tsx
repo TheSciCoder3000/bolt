@@ -4,7 +4,7 @@ import * as yup from "yup";
 import Input from "components/form/Input"
 import { loginUser } from "api/auth";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLoaderData, useNavigate, Navigate } from "react-router-dom";
 import Button from "components/form/Button";
 
 const schema = yup.object({
@@ -25,6 +25,7 @@ function LoginRoute() {
     });
     const [loginError, setloginError] = useState<LoginErrorState>(null);
     const navigate = useNavigate()
+    const user = useLoaderData()
 
     const onSubmit = (data: FormData) => {
         setloginError(null);
@@ -36,7 +37,7 @@ function LoginRoute() {
             .catch(e => setloginError(e.response.data));
     };
 
-    return (
+    return (!user ?
         <div className="h-screen w-screen flex items-center justify-center">
             <div className="py-10 px-48 border rounded-md">
                 {/* Container Header */}
@@ -60,6 +61,8 @@ function LoginRoute() {
 
             </div>
         </div>
+        :
+        <Navigate to={"/app"} />
     )
 }
 

@@ -3,7 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from "yup";
 import Input from "components/form/Input"
 import { registerUser } from "api/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLoaderData, useNavigate } from "react-router-dom";
 import Button from "components/form/Button";
 
 const schema = yup.object({
@@ -17,6 +17,7 @@ function RegisterRoute() {
         resolver: yupResolver(schema)
     });
     const navigate = useNavigate()
+    const user = useLoaderData()
 
     const onSubmit = (data: FormData) => {
         registerUser(data.username, data.password)
@@ -26,7 +27,7 @@ function RegisterRoute() {
             })
     };
 
-    return (
+    return (!user ?
         <div className="h-screen w-screen flex items-center justify-center">
             <div className="py-10 px-48 border rounded-md">
                 {/* Container Header */}
@@ -48,6 +49,8 @@ function RegisterRoute() {
                 </form>
             </div>
         </div>
+        :
+        <Navigate to={"/app"} />
     )
 }
 
