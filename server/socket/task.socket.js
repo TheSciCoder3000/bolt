@@ -17,8 +17,8 @@ const { Socket, Server } = require("socket.io")
  */
 const prefectchTaskData = (dbClient, userId, dateRange) => {
     const sql = dateRange.length > 1 ?
-        "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY task_order;" :
-        "SELECT * FROM task WHERE user_id = $1 AND duedate < $2 ORDER BY task_order;"
+        "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY duedate, duetime, task_order;" :
+        "SELECT * FROM task WHERE user_id = $1 AND duedate < $2 ORDER BY duedate, duetime, task_order;"
     
     return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
 }
@@ -88,7 +88,7 @@ const createSocketTask = (socket) => {
                     null,
                     data.task_order,
                 ]
-            )
+            ).then(res => res.rows[0]?.id || null)
 
             if (data.affected.length > 0) {
                 const sql = format(

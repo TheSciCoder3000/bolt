@@ -13,26 +13,26 @@ interface todoTask {
 }
 
 type SavingStates = "saving" | "failed" | "saved"
-type FocusInputType = HTMLInputElement | null
+type FocusInputType = { [key: string]: HTMLInputElement | null }
 
 function TodoList() {
   const [category, setCategory] = useState<string[]>([])
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [saving, setSaving] = useState<SavingStates>("saved")
-  const [focusIndx, setFocusIndx] = useState<number|null>(null)
-  const focusInput = useRef<FocusInputType[]>([])
+  const [focusIndx, setFocusIndx] = useState<string|null>(null)
+  const focusInput = useRef<FocusInputType>({})
   const { todoSec } = useParams()
   
   // Socket.io hooks
-  const receiveTaskHanlder = (data: taskState[], taskId?: string, taskIndx?: number) => {
+  const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
     setCategory(data.reduce((total, current) => {
       if (!total.includes(current.duedate)) return [...total, current.duedate]
       return total
     }, [] as string[]))
     setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed, duedate: item.duedate })));
-    if (taskId && taskIndx) {
+    if (taskId) {
       setSaving("saved")
-      setFocusIndx(taskIndx)
+      setFocusIndx(taskId)
     }
   }
 
@@ -52,22 +52,22 @@ function TodoList() {
 
 
   // inserts an empty task item
-  const addTaskCreation = (id: string) => {
+  const addTaskCreation = (id: string, taskIndx: number, addDate: string) => {
     setSaving("saving")
     if (!todoSec) return 
-    const affected = tasks.reduce((prev, current, indx) => {
+    const affected = tasks.reduce((prev, current) => {
       if (id === current.id) {
-        const task_order = indx + 1;
+        const task_order = taskIndx + 1;
         return {...prev, found: true, task_order}
       }
-      else if (prev.found) return {...prev, arr: [...prev.arr, current.id]}
+      else if (prev.found && current.duedate.startsWith(addDate)) return {...prev, arr: [...prev.arr, current.id]}
       return prev
     }, {found: false, arr: [] as string[], task_order: 0})
-    const date = new Date()
+    console.log("affected ", affected)
 
     socket?.emit("create-task", {
       affected: affected.arr, 
-      duedate: date.toISOString().split("T")[0], 
+      duedate: addDate, 
       task_order: affected.task_order,
       category: todoSec,
       preData: null,
@@ -75,15 +75,15 @@ function TodoList() {
     })
   }
 
-  const deleteTaskEvent = (taskId: string) => {
+  const deleteTaskEvent = (taskId: string, taskIndx: number, deleteDate: string) => {
     setSaving("saving")
     if (!todoSec) return
-    const affected = tasks.reduce((prev, current, indx) => {
+    const affected = tasks.reduce((prev, current) => {
       if (taskId === current.id) {
-        const task_order = indx + 1
+        const task_order = taskIndx + 1
         return {...prev, found: true, task_order}
       }
-      else if (prev.found) return {...prev, arr: [...prev.arr, current.id]}
+      else if (prev.found && current.duedate.startsWith(deleteDate)) return {...prev, arr: [...prev.arr, current.id]}
       return prev
     }, {found: false, arr: [] as string[], task_order: 0})
 
@@ -96,9 +96,9 @@ function TodoList() {
     })
   }
 
-  const onTaskItemValChange = (newData: {name: string, completed: boolean}, item_pos: number) => {
-    setTasks(state => state.map((item, indx) => {
-      if (item_pos === indx) {
+  const onTaskItemValChange = (newData: {name: string, completed: boolean}, itemId: string) => {
+    setTasks(state => state.map((item) => {
+      if (itemId === item.id) {
         return {...item, ...newData}
       }
       return item;
@@ -128,14 +128,14 @@ function TodoList() {
     })
   }
 
-  const changeFocusEvent = (pos: number) => {
+  const changeFocusEvent = (pos: number, taskArr: todoTask[]) => {
     console.log(pos < 0 || pos > (tasks.length-1))
     if (pos < 0 || pos > (tasks.length-1)) return
-    setFocusIndx(pos)
+    setFocusIndx(taskArr[pos].id)
   }
 
   return (
-    <div className="flex-auto">
+    <div className="flex-auto h-full overflow-scroll">
       <div className="p-10">
         <div className="mb-12">
           <h1 className="text-6xl tracking-wide">{(todoSec?.charAt(0).toUpperCase()) + (todoSec?.slice(1) || "")}</h1>
@@ -151,20 +151,20 @@ function TodoList() {
                 <h4 className="text-xs font-bold text-gray-400/70 tracking-wide">{dateToString(cat.split("T")[0])}</h4>
               )}
               <div className="mt-1 space-y-1">
-                {tasks.map((task, indx) => cat === task.duedate && (
+                {tasks.filter(task => cat === task.duedate).map((task, indx, taskArr) => (
                   <TaskItem 
                     key={task.id} 
                     id={task.id}
-                    ref={refEl => focusInput.current[indx] = refEl}
+                    ref={refEl => focusInput.current[task.id] = refEl}
                     name={task.name}
                     completed={task.completed}
                     insertTaskCreation={() => {
-                      addTaskCreation(task.id)
+                      addTaskCreation(task.id, indx, cat.split("T")[0])
                     }}
                     onUpdate={updateEvent}
-                    focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt)}
-                    onChange={newData => onTaskItemValChange(newData, indx)}
-                    onDelete={() => deleteTaskEvent(task.id)} />
+                    focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt, taskArr)}
+                    onChange={newData => onTaskItemValChange(newData, task.id)}
+                    onDelete={() => deleteTaskEvent(task.id, indx, cat.split("T")[0])} />
                 ))}
               </div>
             </div>
