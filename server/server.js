@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const http = require("http");
 const socketListen = require("./socket");
+const { Server } = require("socket.io")
 
 // configs
 const sessionConfig = require("./config/session.config");
@@ -43,7 +44,10 @@ app.use(taskApi)
 
 const server = http.createServer(app);
 
-const io = require('socket.io')(server, { cors: corsConfig })
+/**
+ * @typedef {typeof io} Server
+ */
+const io = new Server(server, { cors: corsConfig })
 
 io.engine.use(sessionConfig())
 socketListen(io)

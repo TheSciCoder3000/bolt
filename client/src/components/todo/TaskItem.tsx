@@ -27,11 +27,11 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
     }
 
     return (
-        <div className='flex px-3 py-2.5 hover:bg-gray-100/20 rounded-md items-center space-x-3'>
+        <div className='flex px-3 py-2.5 hover:bg-gray-100/30 rounded-md items-center space-x-3'>
             <input
                 className={`
                     border appearance-none h-6 w-6 hover:cursor-pointer 
-                    checked:bg-gray-500 rounded-full peer
+                    checked:bg-gray-500 rounded-full peer border-gray-500/40
                 `}
                 type="checkbox" 
                 checked={completed}

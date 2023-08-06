@@ -6,9 +6,9 @@ interface ModalProps {
 }
 const Modal = ({ children }: ModalProps) => {
   return ReactDOM.createPortal(
-    <div>
+    <>
         {children}
-    </div>,
+    </>,
     document.body
   )
 }

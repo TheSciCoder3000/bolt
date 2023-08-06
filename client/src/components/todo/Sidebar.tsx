@@ -39,6 +39,8 @@ function Sidebar() {
                 <Link to={"/app/todo/today"} className={({ isActive }) => getClassName(isActive, basicActiveClass)}>Today</Link>
                 <Link to={"/app/todo/tomorrow"} className={({ isActive }) => getClassName(isActive, basicActiveClass)}>Tomorrow</Link>
                 <Link to={"/app/todo/week"} className={({ isActive }) => getClassName(isActive, basicActiveClass)}>Within the week</Link>
+                <Link to={"/app/todo/overdue"} className={({ isActive }) => getClassName(isActive, basicActiveClass)}>Overdue</Link>
+                <Link to={"/app/todo/completed"} className={({ isActive }) => getClassName(isActive, basicActiveClass)}>Completed</Link>
             </div>
 
             {/* School */}

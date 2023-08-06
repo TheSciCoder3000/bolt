@@ -1,7 +1,15 @@
 import { logoutUser } from 'api/auth'
-import { useEffect } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import AddTaskModal from 'components/modal/AddTaskModal'
+import { useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
+import {
+  Outlet, 
+  Link, 
+  useNavigate,
+  // useParams
+} from 'react-router-dom'
 import { useStore } from 'store'
+
 
 function App() {
   const links = [
@@ -21,6 +29,10 @@ function App() {
 
   const [user, fetchUser] = useStore(state => [state.user, state.fetchUser])
   const navigate = useNavigate();
+  const [showAddModal, setshowAddModal] = useState(false)
+  const [modalData, setModalData] = useState<{ method: string, data: unknown } | null>(null)
+  useHotkeys("ctrl+shift+a", () => setshowAddModal(true))
+  // const { todoSec } = useParams()
 
   // console.log(user)
   useEffect(() => {
@@ -50,7 +62,8 @@ function App() {
                 <button onClick={() => logoutUser().then(() => navigate("/login"))}>logout</button>
             </div>
           </div>
-          <Outlet />
+          <Outlet context={[modalData, setModalData]} />
+          {showAddModal && (<AddTaskModal onExit={() => setshowAddModal(false)} onSubmit={setModalData} />)}
         </div>
       ) :
       (
