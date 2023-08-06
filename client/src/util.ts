@@ -60,6 +60,11 @@ export function getWeekDateRange() {
     ]
 }
 
+export function getOverdueDate() {
+    const now = new Date();
+    return [now.toISOString().split("T")[0]]
+}
+
 export function getDateFromString(todo: string) {
     switch (todo) {
         case "today":
@@ -68,6 +73,8 @@ export function getDateFromString(todo: string) {
             return getTomDate();
         case "week":
             return getWeekDateRange();
+        case "overdue":
+            return getOverdueDate();
         default:
             throw new Error("Parameter contains invalid string")
     }
