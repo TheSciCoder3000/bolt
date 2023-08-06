@@ -48,7 +48,7 @@ const addTask = (req: Request, res: Response) => {
         const taskCreationOrder = req.body.category.order || 0
         json_val[req.body.category.name] = taskCreationOrder
 
-        const affectedParsed = req.body.category.affected.map((item, indx) => `(${item},'${taskCreationOrder+indx+1}')`).join(",")
+        const affectedParsed = req.body.category.affected.map((item: string, indx: number) => `(${item},'${taskCreationOrder+indx+1}')`).join(",")
 
         const sql = format(
             `UPDATE task SET task_order = jsonb_set(CAST(task_order as jsonb), '{%s}', tmp.t_order::jsonb, true)
