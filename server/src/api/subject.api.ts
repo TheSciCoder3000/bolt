@@ -3,7 +3,7 @@ const app = express();
 
 const controller = require("../controllers/subject.controller")
 
-module.exports = () => {
+export default () => {
     app.route("/api/school-year")
         .get(controller.getAllSy)
         .post(controller.addSy);

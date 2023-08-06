@@ -1,9 +1,10 @@
-const express = require("express");
-const app = express();
+import Express from "express";
+import { PassportStatic } from "passport";
+const app = Express();
 
-const controllers = require("../controllers/auth.controller");
+import controllers from "../controllers/auth.controller";
 
-module.exports = function (passport) {
+export default function (passport: PassportStatic) {
     app.post("/api/login", controllers.login(passport))
     
     app.post("/api/register", controllers.register())

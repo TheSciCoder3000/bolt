@@ -1,8 +1,19 @@
-const db = require("../model");
-const bcrypt = require("bcryptjs");
-const localStrategy = require("passport-local").Strategy;
+import db from "../model";
+import bcrypt from "bcryptjs";
+import LocalPassport from "passport-local";
+import { PassportStatic } from "passport"
 
-module.exports = function(passport) {
+declare global {
+    namespace Express {
+        interface User {
+            id: string;
+        }
+    }
+}
+
+const localStrategy = LocalPassport.Strategy;
+
+export default function(passport: PassportStatic) {
     passport.use(
         new localStrategy(async (username, password, done) => {
             try {
@@ -29,7 +40,6 @@ module.exports = function(passport) {
     });
 
     passport.deserializeUser(async (id, cb) => {
-        console.log("deserializing user")
         try {
             const user = await db.query("SELECT * FROM bolt_user WHERE id = $1;", [id]);
             cb(null, user.rows[0]);

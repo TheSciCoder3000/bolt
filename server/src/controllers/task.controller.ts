@@ -1,7 +1,8 @@
-const db = require("../model");
-const format = require("pg-format")
+import db from "../model";
+import format from "pg-format";
+import { Request, Response } from "express";
 
-const getAllTasks = (req, res) => {
+const getAllTasks = (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.session.passport?.user) 
         res.status(403).json({
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
@@ -18,7 +19,7 @@ const getAllTasks = (req, res) => {
     }
 }
 
-const getTask = (req, res) => {
+const getTask = (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
@@ -36,14 +37,14 @@ const getTask = (req, res) => {
     }
 }
 
-const addTask = (req, res) => {
+const addTask = (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         });
     else {
-        const json_val = {}
+        const json_val: { [key: string]: unknown } = {}
         const taskCreationOrder = req.body.category.order || 0
         json_val[req.body.category.name] = taskCreationOrder
 
@@ -94,7 +95,7 @@ const addTask = (req, res) => {
     }
 }
 
-const updateTask = (req, res) => {
+const updateTask = (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
