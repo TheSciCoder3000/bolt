@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import TaskItem from "./TaskItem"
 import { taskState } from "store/task.slice";
-import { useParams } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 import { dateToString, getDateFromString } from "util";
 import { useSocketIo, useSocketOn } from "hooks/socket";
 
@@ -22,6 +22,7 @@ function TodoList() {
   const [focusIndx, setFocusIndx] = useState<string|null>(null)
   const focusInput = useRef<FocusInputType>({})
   const { todoSec } = useParams()
+  const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
   
   // Socket.io hooks
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
@@ -42,7 +43,21 @@ function TodoList() {
   useEffect(() => {
     if (!todoSec) return
     socket?.emit("fetch-tasks", getDateFromString(todoSec))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, todoSec])
+
+  useEffect(() => {
+    if (!ModalData || !todoSec) return
+    setModalData(null)
+    socket?.emit("create-task", {
+      affected: [], 
+      duedate: ModalData.data.date.toISOString().split("T")[0], 
+      task_order: null,
+      category: todoSec,
+      preData: { name: ModalData.data.name, completed: false },
+      dateRange: getDateFromString(todoSec)
+    })
+  }, [socket, ModalData, setModalData, todoSec])
 
   useEffect(() => {
     if (focusIndx === null) return

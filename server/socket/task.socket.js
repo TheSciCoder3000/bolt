@@ -51,7 +51,7 @@ const fetchSocketTask = (socket) => {
  * @typedef {{
  *  category: string,
  *  id: string,
- *  task_order: number,
+ *  task_order: number | null,
  *  affected: string[],
  *  dateRange: string[]
  * }} SocketTaskData
@@ -70,10 +70,16 @@ const createSocketTask = (socket) => {
         const userId = socket.request.session.passport.user
         const client = await db.getClient();
 
-        const affectedParsed = data.affected.map((item, indx) => `(${item},${data.task_order+indx+1})`).join(",")
-
+        
         try {
             await client.query("BEGIN");
+
+            const task_order = data.task_order || await client.query(
+                "SELECT MAX(task_order) FROM task WHERE user_id = $1 AND duedate = $2;", 
+                [userId, `${data.duedate} 00:00:00.000000+00`]
+            ).then(res => res.rows[0].max + 1 || 0)
+
+            const affectedParsed = data.affected.map((item, indx) => `(${item},${task_order+indx+1})`).join(",")
             const taskId = await client.query(
                 `INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, task_order) 
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, 
@@ -86,7 +92,7 @@ const createSocketTask = (socket) => {
                     null,
                     null,
                     null,
-                    data.task_order,
+                    task_order,
                 ]
             ).then(res => res.rows[0]?.id || null)
 
@@ -105,7 +111,7 @@ const createSocketTask = (socket) => {
             await client.query("COMMIT")
 
             const taskData = await prefectchTaskData(client, userId, data.dateRange)
-            socket.emit("receive-tasks", taskData, taskId, data.task_order);
+            socket.emit("receive-tasks", taskData, taskId);
         } catch (e) {
             await client.query("ROLLBACK");
             console.log("Insert task error")
