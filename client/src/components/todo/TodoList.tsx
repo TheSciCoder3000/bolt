@@ -42,7 +42,8 @@ function TodoList() {
 
   useEffect(() => {
     if (!todoSec) return
-    socket?.emit("fetch-tasks", getDateFromString(todoSec))
+    else if (todoSec === "completed") socket?.emit("fetch-completed-tasks")
+    else socket?.emit("fetch-tasks", getDateFromString(todoSec))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, todoSec])
 
@@ -150,7 +151,7 @@ function TodoList() {
   }
 
   return (
-    <div className="flex-auto h-full overflow-scroll">
+    <div className="flex-auto h-full overflow-y-auto">
       <div className="p-10">
         <div className="mb-12">
           <h1 className="text-6xl tracking-wide">{(todoSec?.charAt(0).toUpperCase()) + (todoSec?.slice(1) || "")}</h1>

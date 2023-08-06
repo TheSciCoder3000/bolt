@@ -18,7 +18,7 @@ const { Socket, Server } = require("socket.io")
 const prefectchTaskData = (dbClient, userId, dateRange) => {
     const sql = dateRange.length > 1 ?
         "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY duedate, duetime, task_order;" :
-        "SELECT * FROM task WHERE user_id = $1 AND duedate < $2 ORDER BY duedate, duetime, task_order;"
+        "SELECT * FROM task WHERE user_id = $1 AND duedate < $2 AND completed = false ORDER BY duedate, duetime, task_order;"
     
     return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
 }
@@ -45,6 +45,26 @@ const fetchSocketTask = (socket) => {
     }
 
     return handler;
+}
+
+/**
+ * 
+ * @param {Socket} socket 
+ */
+const fetchSocketCompleteTask = (socket) => {
+    const handler = async () => {
+        /**@type {string} */
+        const userId = socket.request.session.passport.user
+        const tasks = await db.query(
+            "SELECT * FROM task WHERE user_id = $1 AND completed = true;",
+            [userId]
+        ).then(res => res.rows)
+
+        socket.emit("receive-tasks", tasks);
+
+    }
+
+    return handler
 }
 
 /**
@@ -215,6 +235,7 @@ const updateSocketTask = (socket) => {
  */
 module.exports = (io, socket) => {
     socket.on('fetch-tasks', fetchSocketTask(socket));
+    socket.on('fetch-completed-tasks', fetchSocketCompleteTask(socket));
     socket.on("create-task", createSocketTask(socket));
     socket.on("delete-task", deleteSocketTask(socket));
     socket.on("update-task", updateSocketTask(socket));
