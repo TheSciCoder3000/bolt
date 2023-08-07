@@ -102,16 +102,16 @@ function TodoList() {
       else if (prev.found && current.duedate.startsWith(addDate)) return {...prev, arr: [...prev.arr, current.id]}
       return prev
     }, {found: false, arr: [] as string[], task_order: 0})
-    console.log("affected ", affected)
 
-    socket?.emit("create-task", {
-      affected: affected.arr, 
+    const socketData: SocketAddTask = {
       duedate: addDate, 
       task_order: affected.task_order,
-      category: todoSec,
       preData: null,
-      dateRange: getDateFromString(todoSec)
-    } as SocketAddTask)
+      dateRange: todoSec === "completed" ? [todoSec] : getDateFromString(todoSec)
+    }
+    console.log("add task activated", socketData)
+
+    socket?.emit("create-task", socketData)
   }
 
   const deleteTaskEvent = (taskId: string, taskIndx: number, deleteDate: string) => {
@@ -131,7 +131,7 @@ function TodoList() {
       completed: tasks.find(item => item.id === taskId ? item : null)?.completed,
       duedate: deleteDate.split("T")[0],
       task_order: affected.task_order,
-      dateRange: getDateFromString(todoSec)
+      dateRange: todoSec === "completed" ? [todoSec] : getDateFromString(todoSec)
     } as SocketDeleteTask)
   }
 
