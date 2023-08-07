@@ -12,6 +12,30 @@ interface todoTask {
   duedate: string;
 }
 
+interface SocketAddTask {
+  task_order: number | null;
+  duedate: string;
+  dateRange: string[];
+  preData?: {
+      name: string;
+      completed: boolean;
+  } | null;
+}
+
+interface SocketDeleteTask {
+  completed: boolean;
+  task_order: number;
+  duedate: string;
+  dateRange: string[];
+  id: string;
+}
+
+interface SocketUpdateTask {
+  name: string;
+  completed: boolean;
+  id: string;
+}
+
 type SavingStates = "saving" | "failed" | "saved"
 type FocusInputType = { [key: string]: HTMLInputElement | null }
 
@@ -51,13 +75,11 @@ function TodoList() {
     if (!ModalData || !todoSec) return
     setModalData(null)
     socket?.emit("create-task", {
-      affected: [], 
-      duedate: ModalData.data.date.toISOString().split("T")[0], 
       task_order: null,
-      category: todoSec,
+      duedate: ModalData.data.date.toISOString().split("T")[0], 
       preData: { name: ModalData.data.name, completed: false },
       dateRange: getDateFromString(todoSec)
-    })
+    } as SocketAddTask)
   }, [socket, ModalData, setModalData, todoSec])
 
   useEffect(() => {
@@ -88,7 +110,7 @@ function TodoList() {
       category: todoSec,
       preData: null,
       dateRange: getDateFromString(todoSec)
-    })
+    } as SocketAddTask)
   }
 
   const deleteTaskEvent = (taskId: string, taskIndx: number, deleteDate: string) => {
@@ -104,12 +126,12 @@ function TodoList() {
     }, {found: false, arr: [] as string[], task_order: 0})
 
     socket?.emit("delete-task", {
-      category: todoSec,
       id: taskId,
+      completed: tasks.find(item => item.id === taskId ? item : null)?.completed,
+      duedate: deleteDate.split("T")[0],
       task_order: affected.task_order,
-      affected: affected.arr,
       dateRange: getDateFromString(todoSec)
-    })
+    } as SocketDeleteTask)
   }
 
   const onTaskItemValChange = (newData: {name: string, completed: boolean}, itemId: string) => {
@@ -133,7 +155,7 @@ function TodoList() {
       category: todoSec,
       preData: newData,
       dateRange: getDateFromString(todoSec)
-    })
+    } as SocketAddTask)
   }
 
   const updateEvent = (taskId: string, taskName: string, taskCompleted: boolean) => {
@@ -141,7 +163,7 @@ function TodoList() {
       id: taskId,
       name: taskName,
       completed: taskCompleted
-    })
+    } as SocketUpdateTask)
   }
 
   const changeFocusEvent = (pos: number, taskArr: todoTask[]) => {

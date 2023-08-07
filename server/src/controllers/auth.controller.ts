@@ -1,23 +1,30 @@
-const db = require("../model");
-const bcrypt = require("bcryptjs");
+import { PassportStatic } from "passport";
+import db from "../model";
+import bcrypt from "bcryptjs";
+import { NextFunction, Request, Response } from "express";
+
+declare module 'express-session' {
+    export interface SessionData {
+        passport: { user: string };
+    }
+}
 
 
-module.exports = {
-    login: (passport) => (req, res, next) => {
-        passport.authenticate("local", (err, user) => {
+export default {
+    login: (passport: PassportStatic) => (req: Request, res: Response, next: NextFunction) => {
+        passport.authenticate("local", (err: unknown, user: {id: string}) => {
             if (err) throw err;
             if (!user) res.status(404).json({ status: "error", msg: "No user exists" });
             else {
                 req.logIn(user, err => {
                     if (err) throw err;
                     res.status(200).json({ status: "success", msg: "Successfully Authenticated", user });
-                    // console.log(req);
                 })
             }
         })(req, res, next);
     },
 
-    register: () => async (req, res) => {
+    register: () => async (req: Request, res: Response) => {
         bcrypt.hash(req.body.password, 10)
             .then(async (hashPassword) => {
                 db.query("SELECT * FROM bolt_user WHERE username = $1;", [req.body.username])
@@ -38,14 +45,14 @@ module.exports = {
     
     },
 
-    logout: () => (req, res, next) => {
+    logout: () => (req: Request, res: Response, next: NextFunction) => {
         req.logout((err) => {
             if (err) return next(err);
             res.status(200).json({ status: "success", msg: "user logged out" })
         })
     },
 
-    fetchUser: () => (req, res) => {
+    fetchUser: () => (req: Request, res: Response) => {
         const user = req.session.passport?.user; 
         if (user) {
             db.query("SELECT * FROM bolt_user WHERE id = $1;", [user])

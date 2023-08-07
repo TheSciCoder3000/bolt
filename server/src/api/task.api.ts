@@ -12,4 +12,4 @@ app.route("/api/task/:id")
     .put(controller.updateTask)
     .delete();
 
-module.exports = app;
+export default app;
