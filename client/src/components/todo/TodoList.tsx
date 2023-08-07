@@ -73,7 +73,7 @@ function TodoList() {
   }, [socket, todoSec])
 
   useEffect(() => {
-    if (!ModalData || !todoSec) return
+    if (!ModalData || !todoSec || todoSec === "completed") return
     setModalData(null)
     socket?.emit("create-task", {
       task_order: null,

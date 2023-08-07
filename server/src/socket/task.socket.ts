@@ -90,7 +90,6 @@ const SocketUpdateConstraint = z.object({
 
 
 const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
-    console.log("add task activated")
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
 
@@ -99,7 +98,6 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
 
         const data = SocketAddDataConstraint.parse(unknownData);
-        console.log(data)
 
         const order_string = (data.preData && data.preData.completed) || data.dateRange[0] === "completed" ? 
             "completed_order" : "task_order"
