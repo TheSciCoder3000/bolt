@@ -67,11 +67,27 @@ const BasicTaskConstraint = z.object({
 })
 
 const SocketAddDataConstraint = z.object({
-    task_order: z.number().nullable(),                                 // task target position
+    task_order: z.number().nullable(),                      // task target position
     duedate: z.string(),                                    // date the task is assigned
     preData: BasicTaskConstraint.nullable().optional(),     // data when task is created
     dateRange: z.string().array(),                          // used to filter the task after the operation finishes
 })
+
+
+const SocketDeleteDataConstraint = z.object({
+    id: z.string(),
+    completed: z.boolean(),
+    duedate: z.string(),                                    // date the task is assigned
+    task_order: z.number(),                                 // task position
+    dateRange: z.string().array(),                          // used to filter the task after the operation finishes
+})
+
+const SocketUpdateConstraint = z.object({
+    id: z.string(),
+    name: z.string(),
+    completed: z.boolean(),
+})
+
 
 const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
     const userId = socket.request.session.passport.user
@@ -135,13 +151,6 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
 }
 
 
-const SocketDeleteDataConstraint = z.object({
-    id: z.string(),
-    completed: z.boolean(),
-    duedate: z.string(),                                    // date the task is assigned
-    task_order: z.number(),                                 // task position
-    dateRange: z.string().array(),                          // used to filter the task after the operation finishes
-})
 const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
@@ -179,11 +188,6 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
     }
 }
 
-const SocketUpdateConstraint = z.object({
-    id: z.string(),
-    name: z.string(),
-    completed: z.boolean(),
-})
 const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();

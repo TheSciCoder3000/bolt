@@ -22,6 +22,20 @@ interface SocketAddTask {
   } | null;
 }
 
+interface SocketDeleteTask {
+  completed: boolean;
+  task_order: number;
+  duedate: string;
+  dateRange: string[];
+  id: string;
+}
+
+interface SocketUpdateTask {
+  name: string;
+  completed: boolean;
+  id: string;
+}
+
 type SavingStates = "saving" | "failed" | "saved"
 type FocusInputType = { [key: string]: HTMLInputElement | null }
 
@@ -117,7 +131,7 @@ function TodoList() {
       duedate: deleteDate.split("T")[0],
       task_order: affected.task_order,
       dateRange: getDateFromString(todoSec)
-    })
+    } as SocketDeleteTask)
   }
 
   const onTaskItemValChange = (newData: {name: string, completed: boolean}, itemId: string) => {
@@ -141,7 +155,7 @@ function TodoList() {
       category: todoSec,
       preData: newData,
       dateRange: getDateFromString(todoSec)
-    })
+    } as SocketAddTask)
   }
 
   const updateEvent = (taskId: string, taskName: string, taskCompleted: boolean) => {
@@ -149,7 +163,7 @@ function TodoList() {
       id: taskId,
       name: taskName,
       completed: taskCompleted
-    })
+    } as SocketUpdateTask)
   }
 
   const changeFocusEvent = (pos: number, taskArr: todoTask[]) => {
