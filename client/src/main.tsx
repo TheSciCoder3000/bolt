@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider, redirect } from 'react-router-dom'
 import './index.css'
 
 import TodoRoute from "routes/TodoRoute.tsx"
@@ -26,14 +26,17 @@ const router = createBrowserRouter([
       {
         path: "todo",
         element: <TodoRoute />,
+        loader: async ({ params }) => {
+          console.log(params.todoSec)
+          if (!params.todoSec) return redirect("/login")
+          return null
+        },
         children: [
           {
             path: ":todoSec",
-            element: <TodoRoute />
           },
           {
             path: "subj/:todoSec",
-            element: <TodoRoute />
           }
         ]
       }

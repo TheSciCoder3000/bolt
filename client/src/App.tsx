@@ -18,7 +18,7 @@ function App() {
       name: "Home"
     },
     {
-      path: "/app/todo",
+      path: "/app/todo/today",
       name: "Todo"
     },
     {

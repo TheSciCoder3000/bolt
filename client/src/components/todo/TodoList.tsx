@@ -48,6 +48,7 @@ function TodoList() {
   const { todoSec } = useParams()
   const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
   
+
   // Socket.io hooks
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
     setCategory(data.reduce((total, current) => {
@@ -207,7 +208,7 @@ function TodoList() {
               </div>
             </div>
           ))}
-          {tasks.length === 0 && (
+          {tasks.length === 0 && ['today', 'tomorrow'].includes(todoSec as string) && (
             <TaskItem id="create-task-initial" name="" completed={false} onChange={newData => onTaskAloneValueChange(newData)} />
           )}
         </div>
