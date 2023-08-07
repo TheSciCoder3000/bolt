@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"npx tsc -w\" \"nodemon dist/server.js\""
+    "start": "nodemon dist/server.js",
+    "ts:watch": "npx tsc -w"
   },
   "keywords": [],
   "author": "",
@@ -38,6 +39,7 @@
     "pg-format": "^1.0.4",
     "rimraf": "^5.0.1",
     "socket.io": "^4.7.2",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "zod": "^3.21.4"
   }
 }

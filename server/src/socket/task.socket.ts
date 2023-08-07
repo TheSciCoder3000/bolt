@@ -1,13 +1,14 @@
 import { PoolClient, Pool } from "pg";
 import db from "../model";
 import format from "pg-format";
-import { Socket, Server } from "socket.io";
+import { Server } from "socket.io";
 import { SessionSocket } from ".";
+import { z } from "zod";
 
 // helper function
 const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, dateRange: string[]) => {
     const sql = dateRange.length > 1 ?
-        "SELECT * FROM task WHERE user_id = $1 AND duedate BETWEEN $2 AND $3 ORDER BY duedate, duetime, task_order;" :
+        "SELECT * FROM task WHERE user_id = $1 AND completed = false AND duedate BETWEEN $2 AND $3 ORDER BY duedate, duetime, task_order;" :
         "SELECT * FROM task WHERE user_id = $1 AND duedate < $2 AND completed = false ORDER BY duedate, duetime, task_order;"
     
     return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
@@ -19,14 +20,20 @@ const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, dat
  * returns a `listener` function for fetching tasks
  * @param {Socket} socket
  */
-const fetchSocketTask = (socket: SessionSocket) => async (dateRange: string[]) => {
-    const taskData = await prefectchTaskData(
-        db, 
-        socket.request.session.passport.user,
-        dateRange
-    )
-        .catch(err => console.log(err));
-    socket.emit("receive-tasks", taskData);
+const fetchSocketTask = (socket: SessionSocket) => async (dateRange: unknown) => {
+    try {
+        const DateRangeConstraint = z.string().array();
+        const parsedDateRange = DateRangeConstraint.parse(dateRange)
+        const taskData = await prefectchTaskData(
+            db, 
+            socket.request.session.passport.user,
+            parsedDateRange
+        )
+            .catch(err => console.log(err));
+        socket.emit("receive-tasks", taskData);
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 
@@ -54,7 +61,19 @@ interface SampleData {
     completed: boolean;
 }
 
-const createSocketTask = (socket: SessionSocket) => async (data: SampleData) => {
+const BasicTaskConstraint = z.object({
+    name: z.string(),
+    completed: z.boolean()
+})
+
+const SocketAddDataConstraint = z.object({
+    task_order: z.number().nullable(),                                 // task target position
+    duedate: z.string(),                                    // date the task is assigned
+    preData: BasicTaskConstraint.nullable().optional(),     // data when task is created
+    dateRange: z.string().array(),                          // used to filter the task after the operation finishes
+})
+
+const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
 
@@ -62,12 +81,27 @@ const createSocketTask = (socket: SessionSocket) => async (data: SampleData) => 
     try {
         await client.query("BEGIN");
 
-        const task_order = data.task_order || await client.query(
-            "SELECT MAX(task_order) FROM task WHERE user_id = $1 AND duedate = $2;", 
-            [userId, `${data.duedate} 00:00:00.000000+00`]
-        ).then(res => res.rows[0].max + 1 || 0)
+        const data = SocketAddDataConstraint.parse(unknownData);
+        console.log(data)
 
-        const affectedParsed = data.affected.map((item, indx) => `(${item},${task_order+indx+1})`).join(",")
+        const order_string = data.preData && data.preData.completed ? "completed_order" : "task_order"
+        if (data.task_order != null) {
+            const sql = format(
+                `UPDATE task SET %s = %s + 1 
+                    WHERE user_id = $1 AND 
+                          task_order >= $2 AND
+                          duedate = $3;`, 
+                order_string, 
+                order_string
+            );
+            await client.query(sql, [userId, data.task_order, `${data.duedate} 00:00:00.000000+00`])
+        }
+
+        const task_orderFormat = format("SELECT MAX(%s) as max FROM task WHERE user_id = $1 AND duedate = $2;", order_string)
+        const task_order = data.task_order || 
+            await client.query(task_orderFormat, [userId, `${data.duedate} 00:00:00.000000+00`])
+                .then(res => res.rows[0].max === null ? 0 : (res.rows[0].max + 1));
+
         const taskId = await client.query(
             `INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, task_order) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, 
@@ -82,19 +116,10 @@ const createSocketTask = (socket: SessionSocket) => async (data: SampleData) => 
                 null,
                 task_order,
             ]
-        ).then(res => res.rows[0]?.id || null)
+        ).then(res => res.rows[0].id)
 
-        if (data.affected.length > 0) {
-            const sql = format(
-                `UPDATE task SET task_order = t_order
-                FROM
-                (VALUES %s) AS tmp (id, t_order)
-                WHERE user_id = $1 AND task.id = tmp.id;`,
-                affectedParsed
-            )
-    
-            await client.query(sql, [userId])
-        }
+        
+
 
         await client.query("COMMIT")
 
@@ -109,30 +134,35 @@ const createSocketTask = (socket: SessionSocket) => async (data: SampleData) => 
     }
 }
 
-/**
- * returns a `listener` function for deleting tasks
- * @param {Socket} socket 
- */
-const deleteSocketTask = (socket: SessionSocket) => async (data: SampleData) => {
+
+const SocketDeleteDataConstraint = z.object({
+    id: z.string(),
+    completed: z.boolean(),
+    duedate: z.string(),                                    // date the task is assigned
+    task_order: z.number(),                                 // task position
+    dateRange: z.string().array(),                          // used to filter the task after the operation finishes
+})
+const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
-    const affectedParsed = data.affected.map((item, indx) => `(${item},${data.task_order+indx-1})`).join(",")
 
     try {
         await client.query("BEGIN");
 
+        const data = SocketDeleteDataConstraint.parse(unkownData);
+
         await client.query("DELETE FROM task WHERE id = $1 AND user_id = $2;", [data.id, userId])
 
-        if (data.affected.length > 0) {
-            const sql = format(
-                `UPDATE task SET task_order = t_order
-                FROM
-                (VALUES %s) AS tmp (id, t_order)
-                WHERE user_id = $1 AND task.id = tmp.id;`,
-                affectedParsed
-            )
-            await client.query(sql, [userId])
-        }
+        const order_string = data.completed ? "completed_order" : "task_order"
+        const sql = format(
+            `UPDATE task SET %s = %s - 1 
+                WHERE user_id = $1 AND 
+                      task_order >= $2 AND
+                      duedate = $3;`, 
+            order_string, 
+            order_string
+        );
+        await client.query(sql, [userId, data.task_order, `${data.duedate} 00:00:00.000000+00`])
 
         await client.query("COMMIT")
 
@@ -149,16 +179,18 @@ const deleteSocketTask = (socket: SessionSocket) => async (data: SampleData) => 
     }
 }
 
-/**
- * returns a `listener` function for updating a task
- * @param {Socket} socket 
- */
-const updateSocketTask = (socket: SessionSocket) => async (data: SampleData) => {
+const SocketUpdateConstraint = z.object({
+    id: z.string(),
+    name: z.string(),
+    completed: z.boolean(),
+})
+const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
 
     try {
         await client.query("BEGIN");
+        const data = SocketUpdateConstraint.parse(unknownData);
 
         await client.query(
             "UPDATE task SET name = $1, completed = $2 WHERE user_id = $3 AND id = $4;",
