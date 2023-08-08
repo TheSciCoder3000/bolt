@@ -107,7 +107,7 @@ const updateTask = (req: Request, res: Response) => {
     }
 }
 
-module.exports = {
+export default {
     getAllTasks,
     addTask,
     updateTask

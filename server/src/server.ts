@@ -41,7 +41,7 @@ passportConfig(passport);
 // ================================== API ==================================
 app.use(authApi(passport))          // auth API
 // app.use(subjectApi())               // subject API
-// app.use(taskApi)
+app.use(taskApi)
 
 const server = http.createServer(app);
 
