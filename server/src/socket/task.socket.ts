@@ -24,6 +24,7 @@ const fetchSocketTask = (socket: SessionSocket) => async (dateRange: unknown) =>
     try {
         const DateRangeConstraint = z.string().array();
         const parsedDateRange = DateRangeConstraint.parse(dateRange)
+        console.log(dateRange)
         const taskData = await prefectchTaskData(
             db, 
             socket.request.session.passport.user,

@@ -4,26 +4,33 @@ import { useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import {
   Outlet, 
-  Link, 
+  NavLink as Link, 
   useNavigate,
   // useParams
 } from 'react-router-dom'
 import { useStore } from 'store'
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowRightFromBracket, faCalendar, faChartLine, faClipboardCheck } from '@fortawesome/free-solid-svg-icons'
 
 function App() {
   const links = [
     {
       path: "/app",
-      name: "Home"
+      name: "Home",
+      icon: faChartLine,
+      end: true
     },
     {
-      path: "/app/todo/today",
-      name: "Todo"
+      path: "/app/todo",
+      name: "Todo",
+      icon: faClipboardCheck,
+      end: false
     },
     {
       path: "/app/calendar",
-      name: "Calendar"
+      name: "Calendar",
+      icon: faCalendar,
+      end: true
     },
   ]
 
@@ -46,20 +53,30 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const getClassName = (isActive: boolean, styleString: string) => {
+    return isActive ? `text-green-600 ${styleString}`
+        : styleString
+  }
+
   return (
     <>
       {user ? (
         <div className='flex h-[100vh]'>
-          <div className='bg-slate-100 border-r border-zinc-300 w-16 h-full flex items-center flex-col justify-between py-8'>
-            <div className='flex items-center flex-col space-y-4'>
+          <div className='bg-slate-100 border-r border-zinc-300 w-16 h-full flex items-center flex-col justify-between py-4'>
+            <div className='flex items-center flex-col space-y-4 w-full'>
               {links.map((link, indx) => (
-                <div key={indx}>
-                  <Link key={indx} to={link.path}>{link.name}</Link>
-                </div>
+                <Link key={indx} to={link.path} end={link.end} className={({ isActive }) => getClassName(
+                  isActive, 
+                  "w-full flex justify-center aspect-square items-center hover:bg-gray-200/50 text-gray-500"
+                )} >
+                  <FontAwesomeIcon icon={link.icon} className='text-2xl' />
+                </Link>
               ))}
             </div>
-            <div>
-                <button onClick={() => logoutUser().then(() => navigate("/login"))}>logout</button>
+            <div className='w-full p-2'>
+                <button onClick={() => logoutUser().then(() => navigate("/login"))} className="w-full p-3 rounded-md aspect-square hover:bg-gray-200/80">
+                  <FontAwesomeIcon icon={faArrowRightFromBracket} className='text-lg' />
+                </button>
             </div>
           </div>
           <Outlet context={[modalData, setModalData]} />

@@ -1,4 +1,7 @@
 import React, { forwardRef } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
+
 
 interface TaskItemProps {
     id: string;
@@ -27,7 +30,7 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
     }
 
     return (
-        <div className='flex px-3 py-2.5 hover:bg-gray-100/30 rounded-md items-center space-x-3'>
+        <div className='group flex px-3 py-2.5 hover:bg-gray-100/30 rounded-md items-center space-x-3'>
             <input
                 className={`
                     border appearance-none h-6 w-6 hover:cursor-pointer 
@@ -52,6 +55,9 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
                     onBlur={onItemBlur}
                     type="text" 
                     className='outline-none bg-transparent flex-auto' />
+                <button className='px-2 hover:bg-gray-400/20 rounded-sm hidden group-hover:block'>
+                    <FontAwesomeIcon icon={faEllipsisVertical} />
+                </button>
             </div>
         </div>
     )
