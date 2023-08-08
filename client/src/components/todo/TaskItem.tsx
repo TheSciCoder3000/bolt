@@ -11,10 +11,13 @@ interface TaskItemProps {
     onChange: (newData: {name: string, completed: boolean}) => void;
     onDelete?: () => void;
     onUpdate?: (id: string, name: string, completed: boolean) => void;
-    focusOnItem?: (amnt: number) => void
+    focusOnItem?: (amnt: number) => void;
+    onContextMenu?: (e: React.MouseEvent<HTMLElement, MouseEvent>) => void
 }
 
-const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete, onUpdate, focusOnItem }, ref) => {
+const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, completed, insertTaskCreation, onChange, onDelete, onUpdate, focusOnItem, onContextMenu }, ref) => {
+    
+    
     // add task on enter key pressed and delete on delete key
     const onKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (onUpdate) onUpdate(id, name, completed);
@@ -30,7 +33,9 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
     }
 
     return (
-        <div className='group flex px-3 py-2.5 hover:bg-gray-100/30 rounded-md items-center space-x-3'>
+        <div 
+            className='group flex px-3 py-2.5 hover:bg-gray-100/30 rounded-md items-center space-x-3' 
+            onContextMenu={onContextMenu} >
             <input
                 className={`
                     border appearance-none h-6 w-6 hover:cursor-pointer 
@@ -55,7 +60,7 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
                     onBlur={onItemBlur}
                     type="text" 
                     className='outline-none bg-transparent flex-auto' />
-                <button className='px-2 hover:bg-gray-400/20 rounded-sm hidden group-hover:block'>
+                <button onClick={onContextMenu} className='px-2 hover:bg-gray-400/20 rounded-sm hidden group-hover:block'>
                     <FontAwesomeIcon icon={faEllipsisVertical} />
                 </button>
             </div>

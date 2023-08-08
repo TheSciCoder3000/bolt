@@ -184,7 +184,7 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
                             await client.query("SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;", [userId])
                                 .then(res => res.rows)
 
-        socket.emit("receive-tasks", taskData, data.id, data.task_order-1);
+        socket.emit("receive-tasks", taskData, data.id);
     } catch (e) {
         await client.query("ROLLBACK")
         console.log("delete task error")
