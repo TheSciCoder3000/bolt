@@ -24,6 +24,7 @@ const fetchSocketTask = (socket: SessionSocket) => async (dateRange: unknown) =>
     try {
         const DateRangeConstraint = z.string().array();
         const parsedDateRange = DateRangeConstraint.parse(dateRange)
+        console.log(dateRange)
         const taskData = await prefectchTaskData(
             db, 
             socket.request.session.passport.user,
@@ -41,7 +42,7 @@ const fetchSocketTask = (socket: SessionSocket) => async (dateRange: unknown) =>
 const fetchSocketCompleteTask = (socket: SessionSocket) => async () => {
     const userId = socket.request.session.passport.user
     const tasks = await db.query(
-        "SELECT * FROM task WHERE user_id = $1 AND completed = true;",
+        "SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;",
         [userId]
     ).then(res => res.rows)
 
@@ -98,16 +99,17 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
 
         const data = SocketAddDataConstraint.parse(unknownData);
-        console.log(data)
 
-        const order_string = data.preData && data.preData.completed ? "completed_order" : "task_order"
+        const order_string = (data.preData && data.preData.completed) || data.dateRange[0] === "completed" ? 
+            "completed_order" : "task_order"
         if (data.task_order != null) {
             const sql = format(
                 `UPDATE task SET %s = %s + 1 
                     WHERE user_id = $1 AND 
-                          task_order >= $2 AND
+                          %s >= $2 AND
                           duedate = $3;`, 
                 order_string, 
+                order_string,
                 order_string
             );
             await client.query(sql, [userId, data.task_order, `${data.duedate} 00:00:00.000000+00`])
@@ -119,11 +121,11 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
                 .then(res => res.rows[0].max === null ? 0 : (res.rows[0].max + 1));
 
         const taskId = await client.query(
-            `INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, task_order) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, 
+            format(`INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, %s) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, order_string), 
             [
                 data.preData?.name || "", 
-                data.preData?.completed || false,
+                data.dateRange[0] === "completed" ? true : (data.preData?.completed || false),
                 userId,
                 `${data.duedate} 00:00:00.000000+00`,
                 null,
@@ -139,7 +141,9 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
 
         await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.dateRange)
+        const taskData = data.dateRange[0] != "completed" ? await prefectchTaskData(client, userId, data.dateRange) :
+                            await client.query("SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;", [userId])
+                                .then(res => res.rows)
         socket.emit("receive-tasks", taskData, taskId);
     } catch (e) {
         await client.query("ROLLBACK");
@@ -166,18 +170,21 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
         const sql = format(
             `UPDATE task SET %s = %s - 1 
                 WHERE user_id = $1 AND 
-                      task_order >= $2 AND
+                      %s >= $2 AND
                       duedate = $3;`, 
             order_string, 
+            order_string,
             order_string
         );
         await client.query(sql, [userId, data.task_order, `${data.duedate} 00:00:00.000000+00`])
 
         await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.dateRange)
+        const taskData = !data.completed ? await prefectchTaskData(client, userId, data.dateRange) :
+                            await client.query("SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;", [userId])
+                                .then(res => res.rows)
 
-        socket.emit("receive-tasks", taskData, data.id, data.task_order-1);
+        socket.emit("receive-tasks", taskData, data.id);
     } catch (e) {
         await client.query("ROLLBACK")
         console.log("delete task error")
@@ -196,10 +203,48 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
         const data = SocketUpdateConstraint.parse(unknownData);
 
-        await client.query(
-            "UPDATE task SET name = $1, completed = $2 WHERE user_id = $3 AND id = $4;",
-            [data.name, data.completed, userId, data.id]
-        )
+        const pastData = await client.query(
+            "SELECT * FROM task WHERE user_id = $1 AND id = $2;",
+            [userId, data.id]
+        ).then(res => res.rows[0])
+
+        if (pastData.completed != data.completed) {
+            const { max_order, completed_order } = await client.query(
+                "SELECT MAX(task_order) as max_order, MAX(completed_order) as max_completed FROM task WHERE user_id = $1 AND duedate = $2;",
+                [userId, pastData.duedate]
+            ).then(res => ({
+                max_order: res.rows[0].max_order === null ? 0 : res.rows[0].max_order + 1,
+                completed_order: res.rows[0].max_completed === null ? 0 : res.rows[0].max_completed + 1
+            }));
+
+            const dataOrder = data.completed ? format(", task_order = NULL, completed_order = %s", completed_order) :
+                                format(", task_order = %s, completed_order = NULL", max_order);
+
+            const sql = format(
+                "UPDATE task SET name = $1, completed = $2%s WHERE user_id = $3 AND id = $4;",
+                dataOrder
+            )
+            await client.query(sql, [data.name, data.completed, userId, data.id]);
+
+            const order_string = data.completed ? "task_order" : "completed_order";
+
+            const sqlUpdate = format(
+                `UPDATE task SET %s = %s - 1
+                    WHERE user_id = $1 AND 
+                          %s >= $2 AND
+                          duedate = $3;`, 
+                order_string, 
+                order_string,
+                order_string
+            );
+            await client.query(sqlUpdate, [userId, pastData[order_string], `${pastData.duedate.toISOString().split("T")[0]} 00:00:00+00`])
+            
+        } else {
+            await client.query(
+                "UPDATE task SET name = $1, completed = $2 WHERE user_id = $3 AND id = $4;",
+                [data.name, data.completed, userId, data.id]
+            )
+        }
 
         await client.query("COMMIT")
 

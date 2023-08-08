@@ -4,6 +4,7 @@ import { taskState } from "store/task.slice";
 import { useOutletContext, useParams } from "react-router-dom";
 import { dateToString, getDateFromString } from "util";
 import { useSocketIo, useSocketOn } from "hooks/socket";
+import TaskItemContextMenu from "components/modal/TaskItemContextMenu";
 
 interface todoTask {
   id: string;
@@ -39,6 +40,21 @@ interface SocketUpdateTask {
 type SavingStates = "saving" | "failed" | "saved"
 type FocusInputType = { [key: string]: HTMLInputElement | null }
 
+export interface DataFromContext {
+  name: string;
+  completed: boolean;
+}
+export type CbFromContext = (state: DataFromContext) => DataFromContext
+
+
+const initialContextMenuState = {
+  show: false,
+  x: 0,
+  y: 0,
+  id: null as string | null,
+  completed: false
+}
+
 function TodoList() {
   const [category, setCategory] = useState<string[]>([])
   const [tasks, setTasks] = useState<todoTask[]>([])
@@ -47,7 +63,8 @@ function TodoList() {
   const focusInput = useRef<FocusInputType>({})
   const { todoSec } = useParams()
   const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
-  
+  const [contextMenu, setContextMenu] = useState(initialContextMenuState)
+
   // Socket.io hooks
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
     setCategory(data.reduce((total, current) => {
@@ -72,7 +89,7 @@ function TodoList() {
   }, [socket, todoSec])
 
   useEffect(() => {
-    if (!ModalData || !todoSec) return
+    if (!ModalData || !todoSec || todoSec === "completed") return
     setModalData(null)
     socket?.emit("create-task", {
       task_order: null,
@@ -101,16 +118,16 @@ function TodoList() {
       else if (prev.found && current.duedate.startsWith(addDate)) return {...prev, arr: [...prev.arr, current.id]}
       return prev
     }, {found: false, arr: [] as string[], task_order: 0})
-    console.log("affected ", affected)
 
-    socket?.emit("create-task", {
-      affected: affected.arr, 
+    const socketData: SocketAddTask = {
       duedate: addDate, 
       task_order: affected.task_order,
-      category: todoSec,
       preData: null,
-      dateRange: getDateFromString(todoSec)
-    } as SocketAddTask)
+      dateRange: todoSec === "completed" ? [todoSec] : getDateFromString(todoSec)
+    }
+    console.log("add task activated", socketData)
+
+    socket?.emit("create-task", socketData)
   }
 
   const deleteTaskEvent = (taskId: string, taskIndx: number, deleteDate: string) => {
@@ -130,7 +147,7 @@ function TodoList() {
       completed: tasks.find(item => item.id === taskId ? item : null)?.completed,
       duedate: deleteDate.split("T")[0],
       task_order: affected.task_order,
-      dateRange: getDateFromString(todoSec)
+      dateRange: todoSec === "completed" ? [todoSec] : getDateFromString(todoSec)
     } as SocketDeleteTask)
   }
 
@@ -172,6 +189,44 @@ function TodoList() {
     setFocusIndx(taskArr[pos].id)
   }
 
+  const contextMenuHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>, id: string, completed: boolean) => {
+    e.preventDefault();
+    console.log(id)
+
+    setContextMenu({ show: true, x: e.pageX, y: e.pageY, id, completed })
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu(initialContextMenuState)
+  }
+
+  const updateFromContext = (data: null | DataFromContext | CbFromContext) => {
+    if (contextMenu.id === null) return
+    const taskData = tasks.find(item => item.id === contextMenu.id);
+    const taskIndx = tasks.findIndex(item => item.id === contextMenu.id)
+    if (!taskData || taskIndx === -1) return
+
+    if (data === null) {
+      deleteTaskEvent(
+        contextMenu.id,
+        taskIndx,
+        taskData.duedate.split("T")[0]
+      )
+    } else {
+      const parsedData = typeof data === "function" ? 
+        data({ name: taskData.name, completed: taskData.completed }) : data;
+      updateEvent(
+        contextMenu.id,
+        parsedData.name,
+        parsedData.completed
+      )
+      setTasks(state => state.map(item => {
+        if (item.id === contextMenu.id) return {...item, name: parsedData.name, completed: parsedData.completed}
+        return item
+      }))
+    }
+  }
+
   return (
     <div className="flex-auto h-full overflow-y-auto">
       <div className="p-10">
@@ -202,16 +257,17 @@ function TodoList() {
                     onUpdate={updateEvent}
                     focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt, taskArr)}
                     onChange={newData => onTaskItemValChange(newData, task.id)}
+                    onContextMenu={e => contextMenuHandler(e, task.id, task.completed)}
                     onDelete={() => deleteTaskEvent(task.id, indx, cat.split("T")[0])} />
                 ))}
               </div>
             </div>
           ))}
-          {tasks.length === 0 && (
+          {tasks.length === 0 && ['today', 'tomorrow'].includes(todoSec as string) && (
             <TaskItem id="create-task-initial" name="" completed={false} onChange={newData => onTaskAloneValueChange(newData)} />
           )}
         </div>
-
+        {contextMenu.show && <TaskItemContextMenu completed={contextMenu.completed} updateTask={updateFromContext} x={contextMenu.x} y={contextMenu.y} closeContextMenu={closeContextMenu} />}
       </div>
     </div>
   )
