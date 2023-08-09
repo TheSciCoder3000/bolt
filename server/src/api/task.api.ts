@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const app = express();
 
-const controller = require("../controllers/task.controller");
+import controller from "../controllers/task.controller";
 
 app.route("/api/task")
     .get(controller.getAllTasks)
@@ -11,5 +11,8 @@ app.route("/api/task/:id")
     .get()
     .put(controller.updateTask)
     .delete();
+
+app.route("/api/task/category")
+    .get()
 
 export default app;

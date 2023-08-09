@@ -29,35 +29,47 @@ export function getStartDate(date: Date) {
     return new Date(`${year}-${month}-${day}`)
 }
 
+function setUtc(date: Date) {
+    date.setUTCHours(0);
+    date.setUTCMinutes(0);
+    date.setUTCSeconds(0);
+    date.setUTCMilliseconds(0);
+    return date
+}
+
 export function getTodayDate() {
-    const date = new Date();
-    const tom = new Date();
-    tom.setDate(date.getDate() + 1);
-    return [date.toISOString().split("T")[0], tom.toISOString().split("T")[0]]
+    const now = setUtc(new Date())
+    return [now]
 }
 
 export function getTomDate() {
-    const date = new Date();
-    const tom = new Date();
-    const end = new Date();
-    tom.setDate(date.getDate() + 1);
-    end.setDate(date.getDate() + 2);
-    return [tom.toISOString().split("T")[0], end.toISOString().split("T")[0]]
+    const now = setUtc(new Date());
+    const tom = new Date(now.toISOString());
+    tom.setDate(now.getDate() + 1);
+    return [tom]
 }
 
 export function getWeekDateRange() {
-    const now = new Date();
+    const now = setUtc(new Date());
     const start = new Date();
     const end = new Date();
     const day = now.getDay();
 
     start.setDate(now.getDate() - day);
-    end.setDate(now.getDate() + (7-day));
 
-    return [
-        start.toISOString().split("T")[0],
-        end.toISOString().split("T")[0]
-    ]
+    end.setDate(now.getDate() + (7-day));
+    end.setMilliseconds(end.getMilliseconds() - 1);
+    const diff = end.getTime() - start.getTime();
+
+
+    const datesArr: Date[] = [];
+    for (let i = 0; i < (diff/(1000*3600*24)); i++) {
+        const date = new Date(start.toISOString());
+        date.setDate(date.getDate() + i)
+        datesArr[i] = date
+    }
+    return datesArr
+
 }
 
 export function getOverdueDate() {
@@ -75,14 +87,36 @@ export function getDateFromString(todo: string) {
             return getWeekDateRange();
         case "overdue":
             return getOverdueDate();
+        case "completed":
+            return []
         default:
             throw new Error("Parameter contains invalid string")
     }
 }
 
-export function dateToString(dateString: string) {
-    const date = new Date(dateString);
+export function dateToString(date: Date) {
     const offset = date.getTimezoneOffset() / 60;
     date.setHours(date.getHours() + offset);
     return date.toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"})
+}
+
+export function getCategoriesFromParam(todoSec: string) {
+    type op = "=" | "<" | ">";
+    switch (todoSec) {
+        case "today":
+            return getTodayDate().flatMap(d => [true, false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+        case "tomorrow":
+            return getTomDate().flatMap(d => [true, false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+        case "week":
+            return getWeekDateRange ().flatMap(d => [false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+        case "overdue":
+            return getTodayDate().flatMap(d => [false].map(c => ({ operator: "<" as op, date: d, isCompleted: c })));
+        case "completed":
+            return getTodayDate().flatMap(d => [true].map(c => ({ operator: ">" as op, date: d, isCompleted: c })));
+        // case "subj":
+            // redirect to subject task container
+        //     break;
+        default:
+            throw new Error("todoSec parameter does not exist implement http 404 here");
+    }
 }

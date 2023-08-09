@@ -11,7 +11,8 @@ export interface IncTaskState {
     id: string;
     name: string;
     duedate: string;
-    task_order?: JSON;
+    task_order: number | null;
+    completed_order: number | null;
     completed: boolean;
 }
 

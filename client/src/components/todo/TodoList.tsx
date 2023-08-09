@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import TaskItem from "./TaskItem"
 import { taskState } from "store/task.slice";
 import { useOutletContext, useParams } from "react-router-dom";
 import { dateToString, getDateFromString } from "util";
-import { useSocketIo, useSocketOn } from "hooks/socket";
+import { useSocketOn } from "hooks/socket";
 import TaskItemContextMenu from "components/modal/TaskItemContextMenu";
+import { Socket } from "socket.io-client";
+import { CategoryState } from ".";
 
 interface todoTask {
   id: string;
@@ -16,7 +18,8 @@ interface todoTask {
 interface SocketAddTask {
   task_order: number | null;
   duedate: string;
-  dateRange: string[];
+  category: CategoryState;
+  isCompleted: boolean;
   preData?: {
       name: string;
       completed: boolean;
@@ -54,37 +57,44 @@ const initialContextMenuState = {
   id: null as string | null,
   completed: false
 }
-
-function TodoList() {
-  const [category, setCategory] = useState<string[]>([])
+interface TodoListProps {
+  category: CategoryState;
+  displayHeaders: boolean;
+  socket: Socket;
+  onSaving: React.Dispatch<React.SetStateAction<SavingStates>>;
+}
+const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, onSaving }) => {
   const [tasks, setTasks] = useState<todoTask[]>([])
-  const [saving, setSaving] = useState<SavingStates>("saved")
   const [focusIndx, setFocusIndx] = useState<string|null>(null)
   const focusInput = useRef<FocusInputType>({})
   const { todoSec } = useParams()
   const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
   const [contextMenu, setContextMenu] = useState(initialContextMenuState)
 
-  // Socket.io hooks
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
-    setCategory(data.reduce((total, current) => {
-      if (!total.includes(current.duedate)) return [...total, current.duedate]
-      return total
-    }, [] as string[]))
-    setTasks(data.map(item => ({ id: item.id, name: item.name, completed: item.completed, duedate: item.duedate })));
+    setTasks(data.map(item => ({
+        id: item.id, 
+        name: item.name, 
+        completed: item.completed, 
+        duedate: item.duedate,
+        task_order: item.task_order,
+        completed_order: item.completed_order
+    })));
     if (taskId) {
-      setSaving("saved")
-      setFocusIndx(taskId)
+        onSaving("saved")
+        setFocusIndx(taskId)
     }
   }
 
-  const socket = useSocketIo()
-  useSocketOn(socket, "receive-tasks", receiveTaskHanlder)
+  useSocketOn(socket, `receive-tasks-${category.date.toJSON()}-${category.isCompleted.toString()}`, receiveTaskHanlder);
 
   useEffect(() => {
     if (!todoSec) return
     else if (todoSec === "completed") socket?.emit("fetch-completed-tasks")
-    else socket?.emit("fetch-tasks", getDateFromString(todoSec))
+    else socket?.emit("fetch-tasks", {
+      ...category,
+      date: category.date.toJSON()
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, todoSec])
 
@@ -107,45 +117,40 @@ function TodoList() {
 
 
   // inserts an empty task item
-  const addTaskCreation = (id: string, taskIndx: number, addDate: string) => {
-    setSaving("saving")
-    if (!todoSec) return 
-    const affected = tasks.reduce((prev, current) => {
-      if (id === current.id) {
-        const task_order = taskIndx + 1;
-        return {...prev, found: true, task_order}
-      }
-      else if (prev.found && current.duedate.startsWith(addDate)) return {...prev, arr: [...prev.arr, current.id]}
-      return prev
-    }, {found: false, arr: [] as string[], task_order: 0})
+  const addTaskCreation = (id: string, taskIndx: number, addDate: Date) => {
+    onSaving("saving")
+    if (!todoSec) return
 
     const socketData: SocketAddTask = {
-      duedate: addDate, 
-      task_order: affected.task_order,
+      duedate: addDate.toJSON(), 
+      task_order: taskIndx + 1,
       preData: null,
-      dateRange: todoSec === "completed" ? [todoSec] : getDateFromString(todoSec)
+      isCompleted: category.isCompleted,
+      category
     }
     console.log("add task activated", socketData)
 
     socket?.emit("create-task", socketData)
   }
 
-  const deleteTaskEvent = (taskId: string, taskIndx: number, deleteDate: string) => {
-    setSaving("saving")
+  const deleteTaskEvent = (taskId: string, taskIndx: number, deleteDate: Date) => {
+    onSaving("saving")
     if (!todoSec) return
     const affected = tasks.reduce((prev, current) => {
       if (taskId === current.id) {
         const task_order = taskIndx + 1
         return {...prev, found: true, task_order}
       }
-      else if (prev.found && current.duedate.startsWith(deleteDate)) return {...prev, arr: [...prev.arr, current.id]}
+      else if (prev.found && current.duedate.startsWith(deleteDate.toJSON().split("T")[0])) 
+        return {...prev, arr: [...prev.arr, current.id]}
+
       return prev
     }, {found: false, arr: [] as string[], task_order: 0})
 
     socket?.emit("delete-task", {
       id: taskId,
       completed: tasks.find(item => item.id === taskId ? item : null)?.completed,
-      duedate: deleteDate.split("T")[0],
+      duedate: deleteDate.toJSON().split("T")[0],
       task_order: affected.task_order,
       dateRange: todoSec === "completed" ? [todoSec] : getDateFromString(todoSec)
     } as SocketDeleteTask)
@@ -228,48 +233,42 @@ function TodoList() {
   }
 
   return (
-    <div className="flex-auto h-full overflow-y-auto">
-      <div className="p-10">
-        <div className="mb-12">
-          <h1 className="text-6xl tracking-wide">{(todoSec?.charAt(0).toUpperCase()) + (todoSec?.slice(1) || "")}</h1>
-        </div>
-        {saving}
-
-        <hr className="mb-3"/>
-
-        <div className="mt-7 space-y-2">
-          {category.map(cat => (
-            <div>
-              {todoSec && !['today', 'tomorrow'].includes(todoSec) && (
-                <h4 className="text-xs font-bold text-gray-400/70 tracking-wide">{dateToString(cat.split("T")[0])}</h4>
-              )}
-              <div className="mt-1 space-y-1">
-                {tasks.filter(task => cat === task.duedate).map((task, indx, taskArr) => (
-                  <TaskItem 
-                    key={task.id} 
-                    id={task.id}
-                    ref={refEl => focusInput.current[task.id] = refEl}
-                    name={task.name}
-                    completed={task.completed}
-                    insertTaskCreation={() => {
-                      addTaskCreation(task.id, indx, cat.split("T")[0])
-                    }}
-                    onUpdate={updateEvent}
-                    focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt, taskArr)}
-                    onChange={newData => onTaskItemValChange(newData, task.id)}
-                    onContextMenu={e => contextMenuHandler(e, task.id, task.completed)}
-                    onDelete={() => deleteTaskEvent(task.id, indx, cat.split("T")[0])} />
-                ))}
-              </div>
+    <>
+      <>
+        <>
+          <div>
+            {displayHeaders && (
+              <h4 className="text-xs font-bold text-gray-400/70 tracking-wide">{dateToString(category.date)}</h4>
+            )}
+            {category.isCompleted && (
+              <h4 className="mt-20 text-xs font-bold text-gray-400/70 tracking-wide">Completed</h4>
+            )}
+            <div className="mt-1 space-y-1">
+              {tasks.filter(task => category.isCompleted === task.completed).map((task, indx, taskArr) => (
+                <TaskItem 
+                  key={task.id} 
+                  id={task.id}
+                  ref={refEl => focusInput.current[task.id] = refEl}
+                  name={task.name}
+                  completed={task.completed}
+                  insertTaskCreation={() => {
+                    addTaskCreation(task.id, indx, category.date)
+                  }}
+                  onUpdate={updateEvent}
+                  focusOnItem={(amnt: number) => changeFocusEvent(indx+amnt, taskArr)}
+                  onChange={newData => onTaskItemValChange(newData, task.id)}
+                  onContextMenu={e => contextMenuHandler(e, task.id, task.completed)}
+                  onDelete={() => deleteTaskEvent(task.id, indx, category.date)} />
+              ))}
             </div>
-          ))}
-          {tasks.length === 0 && ['today', 'tomorrow'].includes(todoSec as string) && (
+          </div>
+          {!category.isCompleted && tasks.length === 0 && ['today', 'tomorrow'].includes(todoSec as string) && (
             <TaskItem id="create-task-initial" name="" completed={false} onChange={newData => onTaskAloneValueChange(newData)} />
           )}
-        </div>
+        </>
         {contextMenu.show && <TaskItemContextMenu completed={contextMenu.completed} updateTask={updateFromContext} x={contextMenu.x} y={contextMenu.y} closeContextMenu={closeContextMenu} />}
-      </div>
-    </div>
+      </>
+    </>
   )
 }
 

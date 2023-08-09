@@ -5,13 +5,23 @@ import { Server } from "socket.io";
 import { SessionSocket } from ".";
 import { z } from "zod";
 
+
+const FetchDataConstraint = z.object({
+    operator: z.union([z.literal("="), z.literal("<"), z.literal(">")]),
+    isCompleted: z.boolean(),
+    date: z.coerce.date()
+})
+type Category = z.infer<typeof FetchDataConstraint>
+
 // helper function
-const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, dateRange: string[]) => {
-    const sql = dateRange.length > 1 ?
-        "SELECT * FROM task WHERE user_id = $1 AND completed = false AND duedate BETWEEN $2 AND $3 ORDER BY duedate, duetime, task_order;" :
-        "SELECT * FROM task WHERE user_id = $1 AND duedate < $2 AND completed = false ORDER BY duedate, duetime, task_order;"
+const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, category: Category) => {
+    const sql =  format(
+        "SELECT * FROM task WHERE user_id = $1 AND duedate %s $2 AND completed = $3 ORDER BY duedate, duetime, task_order, completed_order;",
+        category.operator
+
+    )
     
-    return dbClient.query(sql, [userId, ...dateRange]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
+    return dbClient.query(sql, [userId, category.date.toJSON().split("T")[0], category.isCompleted]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
 }
 
 // ========================= Sockets ========================= 
@@ -20,19 +30,18 @@ const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, dat
  * returns a `listener` function for fetching tasks
  * @param {Socket} socket
  */
-const fetchSocketTask = (socket: SessionSocket) => async (dateRange: unknown) => {
+const fetchSocketTask = (socket: SessionSocket) => async (category: unknown) => {
     try {
-        const DateRangeConstraint = z.string().array();
-        const parsedDateRange = DateRangeConstraint.parse(dateRange)
-        console.log(dateRange)
+        const parsedCategory = FetchDataConstraint.parse(category)
         const taskData = await prefectchTaskData(
             db, 
             socket.request.session.passport.user,
-            parsedDateRange
+            parsedCategory
         )
             .catch(err => console.log(err));
-        socket.emit("receive-tasks", taskData);
+        socket.emit(`receive-tasks-${parsedCategory.date.toJSON()}-${parsedCategory.isCompleted.toString()}`, taskData);
     } catch (e) {
+        console.log("\n\nfetch error")
         console.error(e);
     }
 }
@@ -69,9 +78,10 @@ const BasicTaskConstraint = z.object({
 
 const SocketAddDataConstraint = z.object({
     task_order: z.number().nullable(),                      // task target position
-    duedate: z.string(),                                    // date the task is assigned
+    duedate: z.coerce.date(),                                    // date the task is assigned
     preData: BasicTaskConstraint.nullable().optional(),     // data when task is created
-    dateRange: z.string().array(),                          // used to filter the task after the operation finishes
+    category: FetchDataConstraint,                          // used to filter the task after the operation finishes
+    isCompleted: z.boolean()
 })
 
 
@@ -99,9 +109,9 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
 
         const data = SocketAddDataConstraint.parse(unknownData);
+        console.log(data)
 
-        const order_string = (data.preData && data.preData.completed) || data.dateRange[0] === "completed" ? 
-            "completed_order" : "task_order"
+        const order_string = data.isCompleted ? "completed_order" : "task_order"
         if (data.task_order != null) {
             const sql = format(
                 `UPDATE task SET %s = %s + 1 
@@ -112,12 +122,12 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
                 order_string,
                 order_string
             );
-            await client.query(sql, [userId, data.task_order, `${data.duedate} 00:00:00.000000+00`])
+            await client.query(sql, [userId, data.task_order, data.duedate])
         }
 
         const task_orderFormat = format("SELECT MAX(%s) as max FROM task WHERE user_id = $1 AND duedate = $2;", order_string)
         const task_order = data.task_order || 
-            await client.query(task_orderFormat, [userId, `${data.duedate} 00:00:00.000000+00`])
+            await client.query(task_orderFormat, [userId, data.duedate])
                 .then(res => res.rows[0].max === null ? 0 : (res.rows[0].max + 1));
 
         const taskId = await client.query(
@@ -125,9 +135,9 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, order_string), 
             [
                 data.preData?.name || "", 
-                data.dateRange[0] === "completed" ? true : (data.preData?.completed || false),
+                data.isCompleted ? true : (data.preData?.completed || false),
                 userId,
-                `${data.duedate} 00:00:00.000000+00`,
+                data.duedate,
                 null,
                 null,
                 null,
@@ -141,10 +151,8 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
 
         await client.query("COMMIT")
 
-        const taskData = data.dateRange[0] != "completed" ? await prefectchTaskData(client, userId, data.dateRange) :
-                            await client.query("SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;", [userId])
-                                .then(res => res.rows)
-        socket.emit("receive-tasks", taskData, taskId);
+        const taskData = await prefectchTaskData(client, userId, data.category)
+        socket.emit(`receive-tasks-${data.category.date.toJSON()}-${data.category.isCompleted.toString()}`, taskData, taskId);
     } catch (e) {
         await client.query("ROLLBACK");
         console.log("Insert task error")
