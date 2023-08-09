@@ -1,8 +1,17 @@
-import { useSocketIo } from 'hooks/socket';
+import { CategoryState, useSocketIo } from 'hooks/socket';
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import TodoList from './TodoList';
 import { getCategoriesFromParam } from 'util';
+// import TaskItemContextMenu from 'components/modal/TaskItemContextMenu';
+
+// const initialContextMenuState = {
+//     show: false,
+//     x: 0,
+//     y: 0,
+//     id: null as string | null,
+//     completed: false
+// }
 
 interface TodoContainerProps {
 
@@ -10,16 +19,12 @@ interface TodoContainerProps {
 
 type SavingStates = "saving" | "failed" | "saved"
 
-export interface CategoryState {
-    operator: "=" | "<" | ">"
-    isCompleted: boolean,
-    date: Date
-}
-
 const TodoContainer: React.FC<TodoContainerProps> = () => {
     const { todoSec } = useParams();
     const [category, setCategory] = useState<CategoryState[] | null>(null);
     const [saving, setSaving] = useState<SavingStates>("saved");
+    // const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
+    // const [contextMenu, setContextMenu] = useState(initialContextMenuState);
     const socket = useSocketIo();
     const navigate = useNavigate();
 
@@ -27,6 +32,48 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
         if (!todoSec) return navigate("/login");
         setCategory(getCategoriesFromParam(todoSec))
     }, [todoSec, navigate])
+
+    // useEffect(() => {
+    //     if (!ModalData || !todoSec || todoSec === "completed") return
+    //     setModalData(null)
+    //     const socketAdd: SocketAddTask = {
+    //         task_order: null,
+    //         duedate: ModalData.data.date, 
+    //         preData: { name: ModalData.data.name, completed: false },
+    //     }
+    //     socket?.emit("create-task", socketAdd)
+    // }, [socket, ModalData, setModalData, todoSec])
+
+    // const closeContextMenu = () => {
+    //     setContextMenu(initialContextMenuState)
+    // }
+    
+    // const updateFromContext = (data: null | DataFromContext | CbFromContext) => {
+    //     if (contextMenu.id === null) return
+    //     const taskData = tasks.find(item => item.id === contextMenu.id);
+    //     const taskIndx = tasks.findIndex(item => item.id === contextMenu.id)
+    //     if (!taskData || taskIndx === -1) return
+    
+    //     if (data === null) {
+    //       deleteTaskEvent(
+    //         contextMenu.id,
+    //         taskIndx,
+    //         category.date
+    //       )
+    //     } else {
+    //       const parsedData = typeof data === "function" ? 
+    //         data({ name: taskData.name, completed: taskData.completed }) : data;
+    //       updateEvent(
+    //         contextMenu.id,
+    //         parsedData.name,
+    //         parsedData.completed
+    //       )
+    //       setTasks(state => state.map(item => {
+    //         if (item.id === contextMenu.id) return {...item, name: parsedData.name, completed: parsedData.completed}
+    //         return item
+    //       }))
+    //     }
+    // }
 
     return (
         <div className="flex-auto h-full overflow-y-auto">
@@ -38,9 +85,9 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
                 <hr className="mb-3"/>
 
                 <div className="mt-7 space-y-2">
-                    {socket && category && category.sort((a) => a.isCompleted ? 1 : -1).map(cat => (
+                    {socket && category && category.map(cat => (
                         <TodoList
-                            key={`${cat.date.toJSON()}-${cat.isCompleted.toString()}`}
+                            key={`${cat.date}-${cat.isCompleted.toString()}`}
                             socket={socket}
                             category={cat}
                             displayHeaders={todoSec ? !['today', 'tomorrow'].includes(todoSec) : false}
@@ -48,6 +95,7 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
                     ))}
                 </div>
             </div>
+            {/* {contextMenu.show && <TaskItemContextMenu completed={contextMenu.completed} updateTask={updateFromContext} x={contextMenu.x} y={contextMenu.y} closeContextMenu={closeContextMenu} />} */}
         </div>
     )
 }

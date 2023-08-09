@@ -21,14 +21,6 @@ export function zeroPad(num: number, numZeros: number) {
     return zeroString+n;
 }
 
-export function getStartDate(date: Date) {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-
-    return new Date(`${year}-${month}-${day}`)
-}
-
 function setUtc(date: Date) {
     date.setUTCHours(0);
     date.setUTCMinutes(0);
@@ -39,14 +31,14 @@ function setUtc(date: Date) {
 
 export function getTodayDate() {
     const now = setUtc(new Date())
-    return [now]
+    return [now.toJSON()]
 }
 
 export function getTomDate() {
     const now = setUtc(new Date());
     const tom = new Date(now.toISOString());
     tom.setDate(now.getDate() + 1);
-    return [tom]
+    return [tom.toJSON()]
 }
 
 export function getWeekDateRange() {
@@ -62,36 +54,15 @@ export function getWeekDateRange() {
     const diff = end.getTime() - start.getTime();
 
 
-    const datesArr: Date[] = [];
+    const datesArr: string[] = [];
     for (let i = 0; i < (diff/(1000*3600*24)); i++) {
-        const date = new Date(start.toISOString());
+        const date = setUtc(new Date(start.toISOString()));
         date.setDate(date.getDate() + i)
-        datesArr[i] = date
+        datesArr[i] = date.toJSON()
     }
+    // console.log(datesArr)
     return datesArr
 
-}
-
-export function getOverdueDate() {
-    const now = new Date();
-    return [now.toISOString().split("T")[0]]
-}
-
-export function getDateFromString(todo: string) {
-    switch (todo) {
-        case "today":
-            return getTodayDate();
-        case "tomorrow":
-            return getTomDate();
-        case "week":
-            return getWeekDateRange();
-        case "overdue":
-            return getOverdueDate();
-        case "completed":
-            return []
-        default:
-            throw new Error("Parameter contains invalid string")
-    }
 }
 
 export function dateToString(date: Date) {
@@ -104,10 +75,11 @@ export function getCategoriesFromParam(todoSec: string) {
     type op = "=" | "<" | ">";
     switch (todoSec) {
         case "today":
-            return getTodayDate().flatMap(d => [true, false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+            return getTodayDate().flatMap(d => [false, true].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
         case "tomorrow":
-            return getTomDate().flatMap(d => [true, false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+            return getTomDate().flatMap(d => [false, true].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
         case "week":
+            console.log(getWeekDateRange ().flatMap(d => [false].map(c => ({ operator: "=" as op, date: d, isCompleted: c }))))
             return getWeekDateRange ().flatMap(d => [false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
         case "overdue":
             return getTodayDate().flatMap(d => [false].map(c => ({ operator: "<" as op, date: d, isCompleted: c })));

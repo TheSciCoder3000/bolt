@@ -46,8 +46,6 @@ const fetchSocketTask = (socket: SessionSocket) => async (category: unknown) => 
     }
 }
 
-
-
 const fetchSocketCompleteTask = (socket: SessionSocket) => async () => {
     const userId = socket.request.session.passport.user
     const tasks = await db.query(
@@ -57,18 +55,6 @@ const fetchSocketCompleteTask = (socket: SessionSocket) => async () => {
 
     socket.emit("receive-tasks", tasks);
 
-}
-
-
-interface SampleData {
-    task_order: number;
-    duedate: string;
-    affected: string[];
-    preData: null | { name: string, completed: boolean };
-    dateRange: string[];
-    id: string;
-    name: string;
-    completed: boolean;
 }
 
 const BasicTaskConstraint = z.object({
@@ -87,10 +73,9 @@ const SocketAddDataConstraint = z.object({
 
 const SocketDeleteDataConstraint = z.object({
     id: z.string(),
-    completed: z.boolean(),
-    duedate: z.string(),                                    // date the task is assigned
+    duedate: z.coerce.date(),                                    // date the task is assigned
     task_order: z.number(),                                 // task position
-    dateRange: z.string().array(),                          // used to filter the task after the operation finishes
+    category: FetchDataConstraint
 })
 
 const SocketUpdateConstraint = z.object({
@@ -162,7 +147,6 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
     }
 }
 
-
 const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) => {
     const userId = socket.request.session.passport.user
     const client = await db.getClient();
@@ -174,7 +158,7 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
 
         await client.query("DELETE FROM task WHERE id = $1 AND user_id = $2;", [data.id, userId])
 
-        const order_string = data.completed ? "completed_order" : "task_order"
+        const order_string = data.category.isCompleted ? "completed_order" : "task_order"
         const sql = format(
             `UPDATE task SET %s = %s - 1 
                 WHERE user_id = $1 AND 
@@ -184,15 +168,13 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
             order_string,
             order_string
         );
-        await client.query(sql, [userId, data.task_order, `${data.duedate} 00:00:00.000000+00`])
+        await client.query(sql, [userId, data.task_order, data.duedate])
 
         await client.query("COMMIT")
 
-        const taskData = !data.completed ? await prefectchTaskData(client, userId, data.dateRange) :
-                            await client.query("SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;", [userId])
-                                .then(res => res.rows)
+        const taskData = await prefectchTaskData(client, userId, data.category)
 
-        socket.emit("receive-tasks", taskData, data.id);
+        socket.emit(`receive-tasks-${data.category.date.toJSON()}-${data.category.isCompleted.toString()}`, taskData, data.id);
     } catch (e) {
         await client.query("ROLLBACK")
         console.log("delete task error")
