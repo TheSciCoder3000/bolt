@@ -8,6 +8,7 @@ import TodoRoute from "routes/TodoRoute.tsx"
 import LoginRoute from 'routes/LoginRoute.tsx'
 import RegisterRoute from 'routes/RegisterRoute.tsx'
 import { fetchUserApi } from 'api/auth.ts'
+import { getCategoriesFromParam } from 'util.ts'
 
 const router = createBrowserRouter([
   {
@@ -25,18 +26,24 @@ const router = createBrowserRouter([
       },
       {
         path: "todo",
-        element: <TodoRoute />,
+        errorElement: <div>error</div>,
         loader: async ({ params }) => {
-          console.log(params.todoSec)
-          if (!params.todoSec) return redirect("/login")
+          const accepted = ["today", "tomorrow", "week", "completed", "overdue"]
+          if (!params.todoSec || !accepted.includes(params.todoSec)) throw new Response("Not found", { status: 404 })
           return null
         },
         children: [
           {
             path: ":todoSec",
+            element: <TodoRoute />,
+            loader: async ({ params }) => {
+              if (!params.todoSec) return redirect("/login")
+              return await getCategoriesFromParam(params.todoSec)
+            },
           },
           {
             path: "subj/:todoSec",
+            element: <div>testing</div>
           }
         ]
       }

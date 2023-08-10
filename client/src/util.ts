@@ -1,3 +1,5 @@
+import { fetchCompletedCategories, fetchOverdueCategories } from "api/task";
+
 export const getTIMESTAMPTZ = (date: Date) => {
     let offset: string | number = -date.getTimezoneOffset() / 60;
     const sign = (offset >= 0) ? '+' : '-';
@@ -21,68 +23,81 @@ export function zeroPad(num: number, numZeros: number) {
     return zeroString+n;
 }
 
-export function getStartDate(date: Date) {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
+export function toPgDateString(date: Date) {
+    return `${date.getFullYear()}-${zeroPad(date.getMonth() + 1, 2)}-${zeroPad(date.getDate(), 2)}`
+}
 
-    return new Date(`${year}-${month}-${day}`)
+function setWhole(date: Date) {
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date
 }
 
 export function getTodayDate() {
-    const date = new Date();
-    const tom = new Date();
-    tom.setDate(date.getDate() + 1);
-    return [date.toISOString().split("T")[0], tom.toISOString().split("T")[0]]
+    const now = setWhole(new Date())
+    return [toPgDateString(now)]
 }
 
 export function getTomDate() {
-    const date = new Date();
-    const tom = new Date();
-    const end = new Date();
-    tom.setDate(date.getDate() + 1);
-    end.setDate(date.getDate() + 2);
-    return [tom.toISOString().split("T")[0], end.toISOString().split("T")[0]]
+    const now = setWhole(new Date());
+    const tom = new Date(now.toISOString());
+    tom.setDate(now.getDate() + 1);
+    return [toPgDateString(tom)]
 }
 
 export function getWeekDateRange() {
-    const now = new Date();
-    const start = new Date();
-    const end = new Date();
+    const now = setWhole(new Date());
+    const start = new Date(now.toISOString());
+    const end = new Date(now.toISOString());
     const day = now.getDay();
 
     start.setDate(now.getDate() - day);
+
     end.setDate(now.getDate() + (7-day));
+    end.setMilliseconds(end.getMilliseconds() - 1);
+    const diff = end.getTime() - start.getTime();
 
-    return [
-        start.toISOString().split("T")[0],
-        end.toISOString().split("T")[0]
-    ]
-}
 
-export function getOverdueDate() {
-    const now = new Date();
-    return [now.toISOString().split("T")[0]]
-}
-
-export function getDateFromString(todo: string) {
-    switch (todo) {
-        case "today":
-            return getTodayDate();
-        case "tomorrow":
-            return getTomDate();
-        case "week":
-            return getWeekDateRange();
-        case "overdue":
-            return getOverdueDate();
-        default:
-            throw new Error("Parameter contains invalid string")
+    const datesArr: string[] = [];
+    for (let i = 0; i < (diff/(1000*3600*24)); i++) {
+        const date = setWhole(new Date(start.toISOString()));
+        date.setDate(date.getDate() + i)
+        datesArr[i] = toPgDateString(date)
     }
+    // console.log(datesArr)
+    return datesArr
+
 }
 
-export function dateToString(dateString: string) {
-    const date = new Date(dateString);
+export function dateToString(date: Date) {
     const offset = date.getTimezoneOffset() / 60;
     date.setHours(date.getHours() + offset);
     return date.toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"})
+}
+
+export async function getCategoriesFromParam(todoSec: string) {
+    type op = "=" | "<" | ">";
+    switch (todoSec) {
+        case "today":
+            return getTodayDate().flatMap(d => [false, true].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+        case "tomorrow":
+            return getTomDate().flatMap(d => [false, true].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+        case "week":
+            return getWeekDateRange ().flatMap(d => [false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
+        case "overdue": {
+            const [ now ] = getTodayDate();
+            return await fetchOverdueCategories(now);
+        }
+        case "completed": {
+            const [ now ] = getTodayDate();
+            return await fetchCompletedCategories(now);
+        }
+        // case "subj":
+            // redirect to subject task container
+        //     break;
+        default:
+            throw new Error("todoSec parameter does not exist implement http 404 here");
+    }
 }

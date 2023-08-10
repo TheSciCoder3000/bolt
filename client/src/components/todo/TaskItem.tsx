@@ -20,11 +20,11 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
     
     // add task on enter key pressed and delete on delete key
     const onKeydown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (onUpdate) onUpdate(id, name, completed);
         if (e.key == "ArrowUp" && focusOnItem) focusOnItem(-1)
-        if (e.key == "ArrowDown" && focusOnItem) focusOnItem(1)
-        if (e.key == "Enter" && insertTaskCreation) insertTaskCreation()
-        if ((e.key === "Delete" || (name === "" && e.key === "Backspace")) && onDelete) onDelete();
+        else if (e.key == "ArrowDown" && focusOnItem) focusOnItem(1)
+        else if (e.key == "Enter" && insertTaskCreation) insertTaskCreation()
+        else if ((e.key === "Delete" || (name === "" && e.key === "Backspace")) && onDelete) onDelete();
+        else if (onUpdate) onUpdate(id, name, completed);
     }
 
     const onItemBlur = () => {
