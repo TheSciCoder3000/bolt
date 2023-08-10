@@ -1,6 +1,6 @@
-import { CategoryState, useSocketIo } from 'hooks/socket';
-import React, { useState } from 'react'
-import { useLoaderData, useParams } from 'react-router-dom'
+import { CategoryState, SocketAddTask, useSocketIo } from 'hooks/socket';
+import React, { useEffect, useState } from 'react'
+import { useLoaderData, useOutletContext, useParams } from 'react-router-dom'
 import TodoList from './TodoList';
 // import TaskItemContextMenu from 'components/modal/TaskItemContextMenu';
 
@@ -22,20 +22,26 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
     const { todoSec } = useParams();
     const category = useLoaderData() as CategoryState[]
     const [saving, setSaving] = useState<SavingStates>("saved");
-    // const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
     // const [contextMenu, setContextMenu] = useState(initialContextMenuState);
     const socket = useSocketIo();
 
-    // useEffect(() => {
-    //     if (!ModalData || !todoSec || todoSec === "completed") return
-    //     setModalData(null)
-    //     const socketAdd: SocketAddTask = {
-    //         task_order: null,
-    //         duedate: ModalData.data.date, 
-    //         preData: { name: ModalData.data.name, completed: false },
-    //     }
-    //     socket?.emit("create-task", socketAdd)
-    // }, [socket, ModalData, setModalData, todoSec])
+    const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: string } } | null>>>()
+    useEffect(() => {
+        if (!ModalData || !todoSec) return
+        setModalData(null)
+        const socketAdd: SocketAddTask = {
+            task_order: null,
+            duedate: ModalData.data.date, 
+            preData: { name: ModalData.data.name, completed: false },
+            category: {
+                operator: "=",
+                isCompleted: false,
+                date: ModalData.data.date
+            },
+            isCompleted: false
+        }
+        socket?.emit("create-task", socketAdd)
+    }, [socket, ModalData, setModalData, todoSec])    
 
     // const closeContextMenu = () => {
     //     setContextMenu(initialContextMenuState)

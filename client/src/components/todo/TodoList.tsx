@@ -29,10 +29,10 @@ interface TodoListProps {
   onSaving: React.Dispatch<React.SetStateAction<SavingStates>>;
 }
 const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, onSaving }) => {
+  const { todoSec } = useParams();
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [focusIndx, setFocusIndx] = useState<string|null>(null)
   const focusInput = useRef<FocusInputType>({})
-  const { todoSec } = useParams()
 
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
     setTasks(data.map(item => ({

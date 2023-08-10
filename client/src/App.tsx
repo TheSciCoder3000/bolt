@@ -39,9 +39,7 @@ function App() {
   const [showAddModal, setshowAddModal] = useState(false)
   const [modalData, setModalData] = useState<{ method: string, data: unknown } | null>(null)
   useHotkeys("ctrl+shift+a", () => setshowAddModal(true))
-  // const { todoSec } = useParams()
 
-  // console.log(user)
   useEffect(() => {
     fetchUser()
       .then(user => {

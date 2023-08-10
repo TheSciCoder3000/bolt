@@ -3,6 +3,7 @@ import Modal from "./index"
 import { useHotkeys } from 'react-hotkeys-hook'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css";
+import { toPgDateString } from 'util';
 
 interface AddModalProps {
     onExit: () => void
@@ -21,7 +22,7 @@ const AddTaskModal: React.FC<AddModalProps> = ({ onExit, onSubmit }) => {
 
     const quickTaskCreationHandler = () => {
         if (quickTaskName != "" && startDate) {
-            onSubmit({method: "create", data: { name: quickTaskName, date: startDate }})
+            onSubmit({method: "create", data: { name: quickTaskName, date: toPgDateString(startDate) }})
             onExit()
         }
     }

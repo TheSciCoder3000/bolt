@@ -23,7 +23,7 @@ export function zeroPad(num: number, numZeros: number) {
     return zeroString+n;
 }
 
-function toPgDateString(date: Date) {
+export function toPgDateString(date: Date) {
     return `${date.getFullYear()}-${zeroPad(date.getMonth() + 1, 2)}-${zeroPad(date.getDate(), 2)}`
 }
 
