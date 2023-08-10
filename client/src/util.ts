@@ -1,3 +1,5 @@
+import { fetchCompletedCategories, fetchOverdueCategories } from "api/task";
+
 export const getTIMESTAMPTZ = (date: Date) => {
     let offset: string | number = -date.getTimezoneOffset() / 60;
     const sign = (offset >= 0) ? '+' : '-';
@@ -21,30 +23,34 @@ export function zeroPad(num: number, numZeros: number) {
     return zeroString+n;
 }
 
-function setUtc(date: Date) {
-    date.setUTCHours(0);
-    date.setUTCMinutes(0);
-    date.setUTCSeconds(0);
-    date.setUTCMilliseconds(0);
+function toPgDateString(date: Date) {
+    return `${date.getFullYear()}-${zeroPad(date.getMonth() + 1, 2)}-${zeroPad(date.getDate(), 2)}`
+}
+
+function setWhole(date: Date) {
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
     return date
 }
 
 export function getTodayDate() {
-    const now = setUtc(new Date())
-    return [now.toJSON()]
+    const now = setWhole(new Date())
+    return [toPgDateString(now)]
 }
 
 export function getTomDate() {
-    const now = setUtc(new Date());
+    const now = setWhole(new Date());
     const tom = new Date(now.toISOString());
     tom.setDate(now.getDate() + 1);
-    return [tom.toJSON()]
+    return [toPgDateString(tom)]
 }
 
 export function getWeekDateRange() {
-    const now = setUtc(new Date());
-    const start = new Date();
-    const end = new Date();
+    const now = setWhole(new Date());
+    const start = new Date(now.toISOString());
+    const end = new Date(now.toISOString());
     const day = now.getDay();
 
     start.setDate(now.getDate() - day);
@@ -56,9 +62,9 @@ export function getWeekDateRange() {
 
     const datesArr: string[] = [];
     for (let i = 0; i < (diff/(1000*3600*24)); i++) {
-        const date = setUtc(new Date(start.toISOString()));
+        const date = setWhole(new Date(start.toISOString()));
         date.setDate(date.getDate() + i)
-        datesArr[i] = date.toJSON()
+        datesArr[i] = toPgDateString(date)
     }
     // console.log(datesArr)
     return datesArr
@@ -71,7 +77,7 @@ export function dateToString(date: Date) {
     return date.toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"})
 }
 
-export function getCategoriesFromParam(todoSec: string) {
+export async function getCategoriesFromParam(todoSec: string) {
     type op = "=" | "<" | ">";
     switch (todoSec) {
         case "today":
@@ -79,12 +85,15 @@ export function getCategoriesFromParam(todoSec: string) {
         case "tomorrow":
             return getTomDate().flatMap(d => [false, true].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
         case "week":
-            console.log(getWeekDateRange ().flatMap(d => [false].map(c => ({ operator: "=" as op, date: d, isCompleted: c }))))
             return getWeekDateRange ().flatMap(d => [false].map(c => ({ operator: "=" as op, date: d, isCompleted: c })));
-        case "overdue":
-            return getTodayDate().flatMap(d => [false].map(c => ({ operator: "<" as op, date: d, isCompleted: c })));
-        case "completed":
-            return getTodayDate().flatMap(d => [true].map(c => ({ operator: ">" as op, date: d, isCompleted: c })));
+        case "overdue": {
+            const [ now ] = getTodayDate();
+            return await fetchOverdueCategories(now);
+        }
+        case "completed": {
+            const [ now ] = getTodayDate();
+            return await fetchCompletedCategories(now);
+        }
         // case "subj":
             // redirect to subject task container
         //     break;

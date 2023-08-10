@@ -40,3 +40,21 @@ export async function updateTask(data: IncTaskState) {
         url: `http://localhost:3005/api/task/${data.id}`
     })
 }
+
+export async function fetchOverdueCategories(date: string) {
+    return axios({
+        method: "post",
+        data: { date },
+        withCredentials: true,
+        url: "http://localhost:3005/api/task/overdue"
+    }).then(res => res.data.category)
+}
+
+export async function fetchCompletedCategories(date: string) {
+    return axios({
+        method: "post",
+        data: { date },
+        withCredentials: true,
+        url: "http://localhost:3005/api/task/completed"
+    }).then(res => res.data.category)
+}

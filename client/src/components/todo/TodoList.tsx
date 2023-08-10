@@ -35,7 +35,6 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
   const { todoSec } = useParams()
 
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
-    console.log("receiving tasks")
     setTasks(data.map(item => ({
         id: item.id, 
         name: item.name, 
@@ -49,12 +48,11 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
         setFocusIndx(taskId)
     }
   }
-
   useSocketOn(socket, `receive-tasks-${category.date}-${category.isCompleted.toString()}`, receiveTaskHanlder);
 
   useEffect(() => {
     if (!todoSec) return
-    else if (todoSec === "completed") socket?.emit("fetch-completed-tasks")
+    // else if (todoSec === "completed") socket?.emit("fetch-completed-tasks")
     else socket?.emit("fetch-tasks", {
       ...category,
       date: category.date
@@ -125,7 +123,8 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
     socket?.emit("update-task", {
       id: taskId,
       name: taskName,
-      completed: taskCompleted
+      completed: taskCompleted,
+      category
     } as SocketUpdateTask)
   }
 
@@ -148,11 +147,11 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
         {displayHeaders && tasks.length !== 0 && (
           <h4 className="text-xs font-bold text-gray-400/70 tracking-wide">{dateToString(new Date(category.date))}</h4>
         )}
-        {category.isCompleted && (
+        {category.isCompleted && todoSec !== "completed" && tasks.length !== 0 && (
           <h4 className="mt-20 text-xs font-bold text-gray-400/70 tracking-wide">Completed</h4>
         )}
         <div className="mt-1 space-y-1">
-          {tasks.filter(task => category.isCompleted === task.completed).map((task, indx, taskArr) => (
+          {tasks.filter(task => task.completed === category.isCompleted).map((task, indx, taskArr) => (
             <TaskItem 
               key={task.id} 
               id={task.id}

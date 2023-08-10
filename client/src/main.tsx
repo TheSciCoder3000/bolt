@@ -8,6 +8,7 @@ import TodoRoute from "routes/TodoRoute.tsx"
 import LoginRoute from 'routes/LoginRoute.tsx'
 import RegisterRoute from 'routes/RegisterRoute.tsx'
 import { fetchUserApi } from 'api/auth.ts'
+import { getCategoriesFromParam } from 'util.ts'
 
 const router = createBrowserRouter([
   {
@@ -37,7 +38,7 @@ const router = createBrowserRouter([
             element: <TodoRoute />,
             loader: async ({ params }) => {
               if (!params.todoSec) return redirect("/login")
-              return null
+              return await getCategoriesFromParam(params.todoSec)
             },
           },
           {

@@ -29,6 +29,7 @@ export interface SocketUpdateTask {
     name: string;
     completed: boolean;
     id: string;
+    category: CategoryState;
 }
 
 export const useSocketIo = () => {

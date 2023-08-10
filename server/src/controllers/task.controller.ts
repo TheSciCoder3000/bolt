@@ -1,6 +1,7 @@
 import db from "../model";
 import format from "pg-format";
 import { Request, Response } from "express";
+import { z } from "zod";
 
 const getAllTasks = (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.session.passport?.user) 
@@ -107,8 +108,78 @@ const updateTask = (req: Request, res: Response) => {
     }
 }
 
+const FetchBodyConstraint = z.object({
+    date: z.coerce.date()
+})
+
+const fetchAllOverdueCategories = async (req: Request, res: Response) => {
+    const userId = req.session.passport?.user;
+    if (!req.isAuthenticated() || !userId) 
+        res.status(403).json({
+            status: "forbidden", msg: "unable to access resource as an unatheticated user"
+        });
+    
+    else {
+        try {
+            
+            const data = FetchBodyConstraint.parse(req.body)
+            const duedates = await db.query(
+                "SELECT DISTINCT duedate FROM task WHERE user_id = $1 AND duedate < $2 AND completed = false ORDER BY duedate;", 
+                [userId, data.date]
+            ).then(res => res.rows.map(item => {
+                const date = new Date(item.duedate);
+                console.log(date)
+                date.setUTCHours(0);
+                date.setUTCMinutes(0);
+                date.setUTCSeconds(0);
+                date.setUTCMilliseconds(0);
+                return { operator: "=", isCompleted: false, date: date.toJSON() }
+            }))
+            console.log(duedates)
+            res.status(200).json({ count: duedates.length, category: duedates })
+        } catch (e) {
+            console.log(e)
+            res.status(500).json({ msg: "error" })
+        }
+    }
+}
+
+const fetchAllCompletedCategories = async (req: Request, res: Response) => {
+    const userId = req.session.passport?.user;
+    if (!req.isAuthenticated() || !userId) 
+        res.status(403).json({
+            status: "forbidden", msg: "unable to access resource as an unatheticated user"
+        });
+    
+    else {
+        try {
+            
+            const data = FetchBodyConstraint.parse(req.body)
+            const duedates = await db.query(
+                "SELECT DISTINCT duedate FROM task WHERE user_id = $1 AND duedate < $2 AND completed = true ORDER BY duedate;", 
+                [userId, data.date]
+            ).then(res => res.rows.map(item => {
+                const date = new Date(item.duedate);
+                console.log(date)
+                date.setUTCHours(0);
+                date.setUTCMinutes(0);
+                date.setUTCSeconds(0);
+                date.setUTCMilliseconds(0);
+                return { operator: "=", isCompleted: true, date: date.toJSON() }
+            }))
+            console.log(duedates)
+            res.status(200).json({ count: duedates.length, category: duedates })
+        } catch (e) {
+            console.log(e)
+            res.status(500).json({ msg: "error" })
+        }
+    }
+}
+
 export default {
     getAllTasks,
     addTask,
-    updateTask
+    updateTask,
+    fetchAllOverdueCategories,
+    fetchAllCompletedCategories
 }

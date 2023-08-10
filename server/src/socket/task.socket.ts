@@ -9,7 +9,7 @@ import { z } from "zod";
 const FetchDataConstraint = z.object({
     operator: z.union([z.literal("="), z.literal("<"), z.literal(">")]),
     isCompleted: z.boolean(),
-    date: z.coerce.date()
+    date: z.string()
 })
 type Category = z.infer<typeof FetchDataConstraint>
 
@@ -21,7 +21,7 @@ const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, cat
 
     )
     
-    return dbClient.query(sql, [userId, category.date.toJSON().split("T")[0], category.isCompleted]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
+    return dbClient.query(sql, [userId, category.date, category.isCompleted]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
 }
 
 // ========================= Sockets ========================= 
@@ -39,7 +39,8 @@ const fetchSocketTask = (socket: SessionSocket) => async (category: unknown) => 
             parsedCategory
         )
             .catch(err => console.log(err));
-        socket.emit(`receive-tasks-${parsedCategory.date.toJSON()}-${parsedCategory.isCompleted.toString()}`, taskData);
+        console.log(taskData)
+        socket.emit(`receive-tasks-${parsedCategory.date}-${parsedCategory.isCompleted.toString()}`, taskData);
     } catch (e) {
         console.log("\n\nfetch error")
         console.error(e);
@@ -82,6 +83,7 @@ const SocketUpdateConstraint = z.object({
     id: z.string(),
     name: z.string(),
     completed: z.boolean(),
+    category: FetchDataConstraint
 })
 
 
@@ -137,7 +139,7 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("COMMIT")
 
         const taskData = await prefectchTaskData(client, userId, data.category)
-        socket.emit(`receive-tasks-${data.category.date.toJSON()}-${data.category.isCompleted.toString()}`, taskData, taskId);
+        socket.emit(`receive-tasks-${data.category.date}-${data.category.isCompleted.toString()}`, taskData, taskId);
     } catch (e) {
         await client.query("ROLLBACK");
         console.log("Insert task error")
@@ -174,7 +176,7 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
 
         const taskData = await prefectchTaskData(client, userId, data.category)
 
-        socket.emit(`receive-tasks-${data.category.date.toJSON()}-${data.category.isCompleted.toString()}`, taskData, data.id);
+        socket.emit(`receive-tasks-${data.category.date}-${data.category.isCompleted.toString()}`, taskData, data.id);
     } catch (e) {
         await client.query("ROLLBACK")
         console.log("delete task error")
@@ -222,12 +224,13 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
                 `UPDATE task SET %s = %s - 1
                     WHERE user_id = $1 AND 
                           %s >= $2 AND
-                          duedate = $3;`, 
+                          duedate = $3 returning id, name, duedate, task_order, completed_order;`, 
                 order_string, 
                 order_string,
                 order_string
             );
-            await client.query(sqlUpdate, [userId, pastData[order_string], `${pastData.duedate.toISOString().split("T")[0]} 00:00:00+00`])
+            await client.query(sqlUpdate, [userId, pastData[order_string], data.category.date])
+                .then(res => console.log(res.rows))
             
         } else {
             await client.query(
@@ -237,6 +240,14 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         }
 
         await client.query("COMMIT")
+
+        if (pastData.completed != data.completed) {
+            const taskData1 = await prefectchTaskData(client, userId, { ...data.category, isCompleted: data.completed })
+            socket.emit(`receive-tasks-${data.category.date}-${data.completed.toString()}`, taskData1);
+
+            const taskData2 = await prefectchTaskData(client, userId, data.category)
+            socket.emit(`receive-tasks-${data.category.date}-${data.category.isCompleted.toString()}`, taskData2);
+        }
 
     } catch (e) {
         await client.query("ROLLBACK");

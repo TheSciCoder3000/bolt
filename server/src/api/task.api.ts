@@ -12,7 +12,10 @@ app.route("/api/task/:id")
     .put(controller.updateTask)
     .delete();
 
-app.route("/api/task/category")
-    .get()
+app.route("/api/task/overdue")
+    .post(controller.fetchAllOverdueCategories)
+
+app.route("/api/task/completed")
+    .post(controller.fetchAllCompletedCategories)
 
 export default app;

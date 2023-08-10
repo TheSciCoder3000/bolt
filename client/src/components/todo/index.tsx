@@ -1,8 +1,7 @@
 import { CategoryState, useSocketIo } from 'hooks/socket';
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useLoaderData, useParams } from 'react-router-dom'
 import TodoList from './TodoList';
-import { getCategoriesFromParam } from 'util';
 // import TaskItemContextMenu from 'components/modal/TaskItemContextMenu';
 
 // const initialContextMenuState = {
@@ -21,17 +20,11 @@ type SavingStates = "saving" | "failed" | "saved"
 
 const TodoContainer: React.FC<TodoContainerProps> = () => {
     const { todoSec } = useParams();
-    const [category, setCategory] = useState<CategoryState[] | null>(null);
+    const category = useLoaderData() as CategoryState[]
     const [saving, setSaving] = useState<SavingStates>("saved");
     // const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: Date } } | null>>>()
     // const [contextMenu, setContextMenu] = useState(initialContextMenuState);
     const socket = useSocketIo();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        if (!todoSec) return navigate("/login");
-        setCategory(getCategoriesFromParam(todoSec))
-    }, [todoSec, navigate])
 
     // useEffect(() => {
     //     if (!ModalData || !todoSec || todoSec === "completed") return
