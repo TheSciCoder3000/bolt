@@ -5,6 +5,15 @@ import { useParams } from "react-router-dom";
 import { dateToString } from "util";
 import { CategoryState, SocketAddTask, SocketDeleteTask, SocketUpdateTask, useSocketOn } from "hooks/socket";
 import { Socket } from "socket.io-client";
+import TaskItemContextMenu from 'components/modal/TaskItemContextMenu';
+
+const initialContextMenuState = {
+    show: false,
+    x: 0,
+    y: 0,
+    id: null as string | null,
+    completed: false
+}
 
 interface todoTask {
   id: string;
@@ -33,6 +42,8 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
   const [tasks, setTasks] = useState<todoTask[]>([])
   const [focusIndx, setFocusIndx] = useState<string|null>(null)
   const focusInput = useRef<FocusInputType>({})
+  const [contextMenu, setContextMenu] = useState(initialContextMenuState);
+
 
   const receiveTaskHanlder = (data: taskState[], taskId?: string) => {
     setTasks(data.map(item => ({
@@ -65,6 +76,37 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
     focusInput.current[focusIndx]?.focus()
     setFocusIndx(null) 
   }, [focusIndx])
+
+  const closeContextMenu = () => {
+      setContextMenu(initialContextMenuState)
+  }
+  
+  const updateFromContext = (data: null | DataFromContext | CbFromContext) => {
+      if (contextMenu.id === null) return
+      const taskData = tasks.find(item => item.id === contextMenu.id);
+      const taskIndx = tasks.findIndex(item => item.id === contextMenu.id)
+      if (!taskData || taskIndx === -1) return
+  
+      if (data === null) {
+        deleteTaskEvent(
+          contextMenu.id,
+          taskIndx,
+          category.date
+        )
+      } else {
+        const parsedData = typeof data === "function" ? 
+          data({ name: taskData.name, completed: taskData.completed }) : data;
+        updateEvent(
+          contextMenu.id,
+          parsedData.name,
+          parsedData.completed
+        )
+        setTasks(state => state.map(item => {
+          if (item.id === contextMenu.id) return {...item, name: parsedData.name, completed: parsedData.completed}
+          return item
+        }))
+      }
+  }
 
 
   // inserts an empty task item
@@ -138,7 +180,7 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
     e.preventDefault();
     console.log(id, completed)
 
-    // setContextMenu({ show: true, x: e.pageX, y: e.pageY, id, completed })
+    setContextMenu({ show: true, x: e.pageX, y: e.pageY, id, completed })
   }
 
   return (
@@ -172,6 +214,8 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
       {!category.isCompleted && tasks.length === 0 && ['today', 'tomorrow'].includes(todoSec as string) && (
         <TaskItem id="create-task-initial" name="" completed={false} onChange={newData => onTaskAloneValueChange(newData)} />
       )}
+      {contextMenu.show && <TaskItemContextMenu completed={contextMenu.completed} updateTask={updateFromContext} x={contextMenu.x} y={contextMenu.y} closeContextMenu={closeContextMenu} />}
+
     </>
   )
 }

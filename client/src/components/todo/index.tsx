@@ -2,15 +2,7 @@ import { CategoryState, SocketAddTask, useSocketIo } from 'hooks/socket';
 import React, { useEffect, useState } from 'react'
 import { useLoaderData, useOutletContext, useParams } from 'react-router-dom'
 import TodoList from './TodoList';
-// import TaskItemContextMenu from 'components/modal/TaskItemContextMenu';
 
-// const initialContextMenuState = {
-//     show: false,
-//     x: 0,
-//     y: 0,
-//     id: null as string | null,
-//     completed: false
-// }
 
 interface TodoContainerProps {
 
@@ -22,7 +14,6 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
     const { todoSec } = useParams();
     const category = useLoaderData() as CategoryState[]
     const [saving, setSaving] = useState<SavingStates>("saved");
-    // const [contextMenu, setContextMenu] = useState(initialContextMenuState);
     const socket = useSocketIo();
 
     const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: string } } | null>>>()
@@ -43,36 +34,7 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
         socket?.emit("create-task", socketAdd)
     }, [socket, ModalData, setModalData, todoSec])    
 
-    // const closeContextMenu = () => {
-    //     setContextMenu(initialContextMenuState)
-    // }
     
-    // const updateFromContext = (data: null | DataFromContext | CbFromContext) => {
-    //     if (contextMenu.id === null) return
-    //     const taskData = tasks.find(item => item.id === contextMenu.id);
-    //     const taskIndx = tasks.findIndex(item => item.id === contextMenu.id)
-    //     if (!taskData || taskIndx === -1) return
-    
-    //     if (data === null) {
-    //       deleteTaskEvent(
-    //         contextMenu.id,
-    //         taskIndx,
-    //         category.date
-    //       )
-    //     } else {
-    //       const parsedData = typeof data === "function" ? 
-    //         data({ name: taskData.name, completed: taskData.completed }) : data;
-    //       updateEvent(
-    //         contextMenu.id,
-    //         parsedData.name,
-    //         parsedData.completed
-    //       )
-    //       setTasks(state => state.map(item => {
-    //         if (item.id === contextMenu.id) return {...item, name: parsedData.name, completed: parsedData.completed}
-    //         return item
-    //       }))
-    //     }
-    // }
 
     return (
         <div className="flex-auto h-full overflow-y-auto">
@@ -94,7 +56,6 @@ const TodoContainer: React.FC<TodoContainerProps> = () => {
                     ))}
                 </div>
             </div>
-            {/* {contextMenu.show && <TaskItemContextMenu completed={contextMenu.completed} updateTask={updateFromContext} x={contextMenu.x} y={contextMenu.y} closeContextMenu={closeContextMenu} />} */}
         </div>
     )
 }
