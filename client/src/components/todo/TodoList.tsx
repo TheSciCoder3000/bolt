@@ -63,8 +63,7 @@ const TodoList: React.FC<TodoListProps> = ({ category, displayHeaders, socket, o
 
   useEffect(() => {
     if (!todoSec) return
-    // else if (todoSec === "completed") socket?.emit("fetch-completed-tasks")
-    else socket?.emit("fetch-tasks", {
+    socket?.emit("fetch-tasks", {
       ...category,
       date: category.date
     })
