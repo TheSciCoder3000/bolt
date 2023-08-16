@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
-import { createBrowserRouter, Navigate, RouterProvider, redirect } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 
 import TodoRoute from "routes/TodoRoute.tsx"
@@ -9,6 +9,7 @@ import LoginRoute from 'routes/LoginRoute.tsx'
 import RegisterRoute from 'routes/RegisterRoute.tsx'
 import { fetchUserApi } from 'api/auth.ts'
 import { getCategoriesFromParam } from 'util.ts'
+import CalendarRoute from 'routes/CalendarRoute.tsx'
 
 const router = createBrowserRouter([
   {
@@ -27,17 +28,17 @@ const router = createBrowserRouter([
       {
         path: "todo",
         errorElement: <div>error</div>,
-        loader: async ({ params }) => {
-          const accepted = ["today", "tomorrow", "week", "completed", "overdue"]
-          if (!params.todoSec || !accepted.includes(params.todoSec)) throw new Response("Not found", { status: 404 })
-          return null
-        },
         children: [
+          {
+            index: true,
+            element: <Navigate to={"/app/todo/today"} />
+          },
           {
             path: ":todoSec",
             element: <TodoRoute />,
             loader: async ({ params }) => {
-              if (!params.todoSec) return redirect("/login")
+              const accepted = ["today", "tomorrow", "week", "completed", "overdue"]
+              if (!params.todoSec || !accepted.includes(params.todoSec)) throw new Response("Not found", { status: 404 })
               return await getCategoriesFromParam(params.todoSec)
             },
           },
@@ -46,6 +47,15 @@ const router = createBrowserRouter([
             element: <div>testing</div>
           }
         ]
+      },
+      {
+        path: "calendar",
+        element: <CalendarRoute />,
+        // children: [
+        //   {
+        //     index: true,
+        //   }
+        // ]
       }
     ],
   },

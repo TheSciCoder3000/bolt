@@ -1,5 +1,6 @@
 import axios from "axios";
 import { IncTaskState, taskState } from "store/task.slice";
+import { z } from "zod";
 
 interface ServerResponse {
     status: string;
@@ -57,4 +58,18 @@ export async function fetchCompletedCategories(date: string) {
         withCredentials: true,
         url: "http://localhost:3005/api/task/completed"
     }).then(res => res.data.category)
+}
+
+const TasksByDateConstraint = z.object({
+    id: z.string(),
+    name: z.string(),
+    duedate: z.string(),
+    completed: z.boolean()
+}).array()
+export async function fetchTaskByDate(date: string) {
+    return axios({
+        method: "get",
+        withCredentials: true,
+        url: `http://localhost:3005/api/task/date/${date}`
+    }).then(res => TasksByDateConstraint.parse(res.data.tasks))
 }

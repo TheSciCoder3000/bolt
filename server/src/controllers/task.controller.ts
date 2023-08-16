@@ -176,10 +176,33 @@ const fetchAllCompletedCategories = async (req: Request, res: Response) => {
     }
 }
 
+const fetchTaskByDate = async (req: Request, res: Response) => {
+    const userId = req.session.passport?.user;
+    if (!req.isAuthenticated() || !userId) 
+        res.status(403).json({
+            status: "forbidden", msg: "unable to access resource as an unatheticated user"
+        });
+    else {
+        console.log(req.params.dateString)
+        db.query("SELECT id, name, duedate, completed FROM task WHERE user_id = $1 AND duedate = $2;", [userId, req.params.dateString])
+            .then(result => res.status(200).json({
+                status: "success",
+                msg: "task found",
+                results: result.rows.length,
+                tasks: result.rows
+            }))
+            .catch((err) => {
+                res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" })
+                console.log(err)
+            })
+    }
+}
+
 export default {
     getAllTasks,
     addTask,
     updateTask,
     fetchAllOverdueCategories,
-    fetchAllCompletedCategories
+    fetchAllCompletedCategories,
+    fetchTaskByDate
 }

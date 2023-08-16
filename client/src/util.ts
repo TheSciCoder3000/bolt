@@ -101,3 +101,17 @@ export async function getCategoriesFromParam(todoSec: string) {
             throw new Error("todoSec parameter does not exist implement http 404 here");
     }
 }
+
+export function weekCount(year: number, month_number: number) {
+
+    // month_number is in the range 1..12
+
+    const firstOfMonth = new Date(year, month_number-1, 1);
+    const lastOfMonth = new Date(year, month_number, 0);
+
+    const used = firstOfMonth.getDay() + lastOfMonth.getDate();
+
+    return Math.ceil( used / 7);
+}
+
+export const range = (n: number) => Array.from(Array(n).keys())
