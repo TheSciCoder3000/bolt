@@ -209,7 +209,10 @@ const fetchTaskByMonth = async (req: Request, res: Response) => {
         try {
             const [year, month] = YearMonthConstraint.parse(req.params.yearMonth.split("-"))
             db.query(
-                "SELECT id, name, duedate, completed FROM task WHERE user_id = $1 AND EXTRACT(MONTH FROM duedate) = $2 AND EXTRACT(YEAR FROM duedate) = $3;", 
+                `SELECT id, name, duedate, completed 
+                FROM task 
+                WHERE user_id = $1 AND EXTRACT(MONTH FROM duedate) = $2 AND EXTRACT(YEAR FROM duedate) = $3
+                ORDER BY completed, task_order, completed_order;`, 
                 [userId, month, year]
             )
                 .then(result => res.status(200).json({
