@@ -198,11 +198,43 @@ const fetchTaskByDate = async (req: Request, res: Response) => {
     }
 }
 
+const YearMonthConstraint = z.coerce.number().array().min(2).max(2).nonempty();
+const fetchTaskByMonth = async (req: Request, res: Response) => {
+    const userId = req.session.passport?.user;
+    if (!req.isAuthenticated() || !userId) 
+        res.status(403).json({
+            status: "forbidden", msg: "unable to access resource as an unatheticated user"
+        });
+    else {
+        try {
+            const [year, month] = YearMonthConstraint.parse(req.params.yearMonth.split("-"))
+            db.query(
+                "SELECT id, name, duedate, completed FROM task WHERE user_id = $1 AND EXTRACT(MONTH FROM duedate) = $2 AND EXTRACT(YEAR FROM duedate) = $3;", 
+                [userId, month, year]
+            )
+                .then(result => res.status(200).json({
+                    status: "success",
+                    msg: "task found",
+                    results: result.rows.length,
+                    tasks: result.rows
+                }))
+                .catch((err) => {
+                    res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" })
+                    console.log(err)
+                })
+
+        } catch (e) {
+            res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" })
+            console.log(e)
+        }
+    }
+}
 export default {
     getAllTasks,
     addTask,
     updateTask,
     fetchAllOverdueCategories,
     fetchAllCompletedCategories,
-    fetchTaskByDate
+    fetchTaskByDate,
+    fetchTaskByMonth
 }

@@ -60,7 +60,7 @@ export async function fetchCompletedCategories(date: string) {
     }).then(res => res.data.category)
 }
 
-const TasksByDateConstraint = z.object({
+const TasksByConstraint = z.object({
     id: z.string(),
     name: z.string(),
     duedate: z.string(),
@@ -71,5 +71,13 @@ export async function fetchTaskByDate(date: string) {
         method: "get",
         withCredentials: true,
         url: `http://localhost:3005/api/task/date/${date}`
-    }).then(res => TasksByDateConstraint.parse(res.data.tasks))
+    }).then(res => TasksByConstraint.parse(res.data.tasks))
+}
+
+export async function fetchTasksByMonth(year: number, month: number) {
+    return axios({
+        method: "get",
+        withCredentials: true,
+        url: `http://localhost:3005/api/task/month/${year}-${month}`
+    }).then(res => TasksByConstraint.parse(res.data.tasks))
 }

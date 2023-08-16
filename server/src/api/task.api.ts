@@ -21,4 +21,7 @@ app.route("/api/task/completed")
 app.route("/api/task/date/:dateString")
     .get(controller.fetchTaskByDate)
 
+app.route("/api/task/month/:yearMonth")
+    .get(controller.fetchTaskByMonth)
+
 export default app;
