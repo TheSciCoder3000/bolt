@@ -51,6 +51,7 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
     end: endOfWeek(endOfMonth(firstDayCurrentMonth))
   });
 
+  // run onDateSelect event
   useEffect(() => {
     onDateSelect && onDateSelect(selectedDate);
   }, [selectedDate, onDateSelect])
@@ -58,7 +59,7 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
   useEffect(() => {
     console.log(activeDateElement.current)
     if (!isInView) {
-      activeDateElement.current?.scrollIntoView({ behavior: "smooth" });
+      activeDateElement.current?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
     }
   }, [isInView, activeDateElement, selectedDate])
 
