@@ -35,6 +35,8 @@ interface CalendarContainerProps {
   onDateSelect?: (date: string) => void
 }
 
+type FilterKeyT = "all" | "completed" | "unfinished"
+
 const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) => {
   const today = startOfToday();
   const [selectedDate, setSelectedDate] = useState(format(today, "MMM-dd-yyyy"));
@@ -42,6 +44,7 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
   const firstDayCurrentMonth = parse(currentMonth, "MMM-yyyy", new Date());
   const { activeDateElement, isInView } = useIsInViewport();
   const [tasks, setTasks] = useState<Awaited<ReturnType<typeof fetchTasksByMonth>>>([])
+  const [filterKey, setFilterKey] = useState<FilterKeyT>("all")
 
   const switchMonth = (amnt: number) => {
     const firstDayNextMonth = add(firstDayCurrentMonth, {months: amnt})
@@ -52,15 +55,28 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
     const dates = eachDayOfInterval({
       start: startOfWeek(firstDayCurrentMonth),
       end: endOfWeek(endOfMonth(firstDayCurrentMonth))
-    }).map(date => ({ date, tasks: [] as typeof tasks }))
+    }).map(date => ({ date, tasks: [] as typeof tasks }));
 
-    return tasks.reduce((total, current) => total.map((item) => {
+    return tasks
+    .filter(item => {
+      switch (filterKey) {
+        case "all":
+          return true;
+        case "completed":
+          return item.completed
+        case "unfinished":
+          return !item.completed
+        default:
+          return true;
+      }
+    })
+    .reduce((total, current) => total.map((item) => {
       if (isSameDay(parse(current.duedate, "yyyy-MM-dd", new Date()), item.date)) {
         return {...item, tasks: [...item.tasks, current]}
       }
       return item
     }), dates)
-  }, [firstDayCurrentMonth, tasks])
+  }, [firstDayCurrentMonth, tasks, filterKey])
 
   useEffect(() => {
     const monthDate = parse(currentMonth, "MMM-yyyy", new Date());
@@ -83,7 +99,9 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
 
   const goToToday = () => {
     setSelectedDate(format(today, "MMM-dd-yyyy"))
-    setCurrentMonth(format(today, "MMM-yyyy"))
+    if (!isSameMonth(today, firstDayCurrentMonth)) {
+      setCurrentMonth(format(today, "MMM-yyyy"));
+    }
   }
 
   const goToDate = (date: Date) => {
@@ -99,7 +117,7 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
         <div>
           <h1 className="text-3xl">{format(firstDayCurrentMonth, "MMMM yyyy")}</h1>
         </div>
-        <select name="filter-task">
+        <select name="filter-task" onChange={e => setFilterKey(e.target.value as FilterKeyT)}>
           <option value="all">All</option>
           <option value="unfinished">Unfinished</option>
           <option value="completed">Completed</option>
