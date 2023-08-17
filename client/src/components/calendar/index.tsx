@@ -144,8 +144,8 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
         <div className="grid grid-cols-7 h-full">
           {days.map((day, daysIndx) => (
             <div key={day.toString()} className={classNames(
-              "bg-white border-y gap-0 aspect-square overflow-hidden h-full",
-              "border-x space-y-6",
+              "bg-white border-y gap-0 aspect-square overflow-hidden h-full w-full",
+              "border-x space-y-6 flex flex-col",
               daysIndx === 0 && colStartClasses[getDay(day.date)],
               !isSameMonth(firstDayCurrentMonth, day.date) ? "text-gray-400/50" : "text-gray-600",
             )}>

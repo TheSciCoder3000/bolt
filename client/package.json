@@ -21,6 +21,7 @@
     "immer": "^10.0.2",
     "react": "^18.2.0",
     "react-datepicker": "^4.16.0",
+    "react-detectable-overflow": "^0.7.1",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.45.2",
     "react-hotkeys-hook": "^4.4.1",
