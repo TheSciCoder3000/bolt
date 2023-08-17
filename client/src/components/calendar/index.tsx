@@ -32,18 +32,19 @@ const colStartClasses = [
 const classNames = (...classes: (string | boolean)[]) => classes.filter(Boolean).join(" ");
 
 interface CalendarContainerProps {
-  onDateSelect?: (date: string) => void
+  onDateSelect?: (date: Date) => void
+  onMonthChange?: (date: Date) => void
+  tasks: Awaited<ReturnType<typeof fetchTasksByMonth>>
 }
 
 type FilterKeyT = "all" | "completed" | "unfinished"
 
-const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) => {
+const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks }) => {
   const today = startOfToday();
   const [selectedDate, setSelectedDate] = useState(format(today, "MMM-dd-yyyy"));
   const [currentMonth, setCurrentMonth] = useState(format(today, "MMM-yyyy"));
   const firstDayCurrentMonth = parse(currentMonth, "MMM-yyyy", new Date());
   const { activeDateElement, isInView } = useIsInViewport();
-  const [tasks, setTasks] = useState<Awaited<ReturnType<typeof fetchTasksByMonth>>>([])
   const [filterKey, setFilterKey] = useState<FilterKeyT>("all")
 
   const switchMonth = (amnt: number) => {
@@ -69,8 +70,7 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
         default:
           return true;
       }
-    })
-    .reduce((total, current) => total.map((item) => {
+    }).reduce((total, current) => total.map((item) => {
       if (isSameDay(parse(current.duedate, "yyyy-MM-dd", new Date()), item.date)) {
         return {...item, tasks: [...item.tasks, current]}
       }
@@ -78,20 +78,12 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
     }), dates)
   }, [firstDayCurrentMonth, tasks, filterKey])
 
-  useEffect(() => {
-    const monthDate = parse(currentMonth, "MMM-yyyy", new Date());
-    fetchTasksByMonth(monthDate.getFullYear(), monthDate.getMonth() + 1)
-      .then(setTasks)
-
-  }, [currentMonth])
-
   // run onDateSelect event
   useEffect(() => {
-    onDateSelect && onDateSelect(selectedDate);
+    onDateSelect && onDateSelect(parse(selectedDate, "MMM-dd-yyyy", new Date()));
   }, [selectedDate, onDateSelect])
 
   useEffect(() => {
-    console.log(activeDateElement.current)
     if (!isInView) {
       activeDateElement.current?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
     }
@@ -149,17 +141,19 @@ const CalendarContainer: React.FC<CalendarContainerProps> = ({ onDateSelect }) =
               daysIndx === 0 && colStartClasses[getDay(day.date)],
               !isSameMonth(firstDayCurrentMonth, day.date) ? "text-gray-400/50" : "text-gray-600",
             )}>
-              <button 
-                ref={isSameDay(day.date, parse(selectedDate, "MMM-dd-yyyy", new Date())) ? 
-                  activeDateElement : null} 
-                onClick={() => goToDate(day.date)} 
-                className={classNames(
-                "aspect-square w-8",
-                "outline-none ml-3 mt-3",
-                isSameDay(day.date, parse(selectedDate, "MMM-dd-yyyy", new Date())) ? 
-                  "text-white bg-red-500 rounded-full" :
-                  isToday(day.date) && "text-green-600 font-semibold" 
-              )}>{format(day.date, 'd')}</button>
+              <div>
+                <button 
+                  ref={isSameDay(day.date, parse(selectedDate, "MMM-dd-yyyy", new Date())) ? 
+                    activeDateElement : null} 
+                  onClick={() => goToDate(day.date)} 
+                  className={classNames(
+                  "aspect-square w-8",
+                  "outline-none ml-3 mt-3",
+                  isSameDay(day.date, parse(selectedDate, "MMM-dd-yyyy", new Date())) ? 
+                    "text-white bg-red-500 rounded-full" :
+                    isToday(day.date) && "text-green-600 font-semibold" 
+                )}>{format(day.date, 'd')}</button>
+              </div>
 
               <DayTaskList tasks={day.tasks} />
             </div>

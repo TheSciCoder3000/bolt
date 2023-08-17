@@ -19,12 +19,11 @@ export async function fetchTasks() {
     .catch(() => [] as taskState[])
 }
 
-export async function addTask(data: IncTaskState, category: {name: string, order: number | null, affected: string[]}) {
+export async function addTask(data: { name: string, date: string }) {
     return axios({
         method: "post",
         data: {
             ...data,
-            category
         },
         withCredentials: true,
         url: "http://localhost:3005/api/task"

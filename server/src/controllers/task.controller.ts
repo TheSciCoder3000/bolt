@@ -38,61 +38,57 @@ const getTask = (req: Request, res: Response) => {
     }
 }
 
-const addTask = (req: Request, res: Response) => {
+const addTask = async (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         });
     else {
-        const json_val: { [key: string]: unknown } = {}
-        const taskCreationOrder = req.body.category.order || 0
-        json_val[req.body.category.name] = taskCreationOrder
+        const client = await db.getClient();
 
-        const affectedParsed = req.body.category.affected.map((item: string, indx: number) => `(${item},'${taskCreationOrder+indx+1}')`).join(",")
+        const AddTaskConstraint = z.object({
+            name: z.string(),
+            date: z.string(),
+        })
+        try {
+            await client.query("BEGIN");
+            const data = AddTaskConstraint.parse(req.body);
 
-        const sql = format(
-            `UPDATE task SET task_order = jsonb_set(CAST(task_order as jsonb), '{%s}', tmp.t_order::jsonb, true)
-            FROM
-            (VALUES %s) AS tmp (id, t_order)
-            WHERE user_id = $1 AND task.id = tmp.id;`,
-            req.body.category.name,
-            affectedParsed
-        )
+            const order_string = "task_order"
+            const task_orderFormat = format("SELECT MAX(%s) as max FROM task WHERE user_id = $1 AND duedate = $2;", order_string)
+            const task_order = await client.query(task_orderFormat, [userId, data.date])
+                    .then(res => res.rows[0].max === null ? 0 : (res.rows[0].max + 1));
 
-        console.log(sql)
+            const taskId = await client.query(
+                format(`INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, %s) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, order_string), 
+                [
+                    data.name || "", 
+                    false,
+                    userId,
+                    data.date,
+                    null,
+                    null,
+                    null,
+                    null,
+                    task_order,
+                ]
+            ).then(res => res.rows[0].id)
 
-        db.query(
-            sql,
-            [
-                userId
-            ]
-        )
-            .then(() => db.query(
-                    `INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, task_order) 
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *;`, 
-                    [
-                        req.body.name, 
-                        req.body.completed,
-                        userId,
-                        req.body.duedate,
-                        req.body.details || null,
-                        null,
-                        null,
-                        null,
-                        json_val,
-                    ]
-                )
-                    .then(result => res.status(201).json({
-                        status: "success",
-                        msg: "task created",
-                        results: result.rows.length,
-                        tasks: result.rows
-                    })))
-            .catch(err => {
-                console.log(err)
-                res.status(500).json({ status: "Db error", msg: "unable to insert task" })
-            })
+            
+
+
+            await client.query("COMMIT")
+            res.status(203).json({ msg: "task successfully added" })
+        } catch (e) {
+            await client.query("ROLLBACK");
+            console.log("Insert task error")
+            console.log(e)
+            res.status(500).json({ msg: "db error" })
+        } finally {
+            client.release();
+        }
     }
 }
 
