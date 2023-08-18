@@ -222,7 +222,7 @@ const deleteTask = async (req: Request, res: Response) => {
                 order_string,
                 order_string
             );
-            await client.query(sql, [userId, removedTask.task_order, removedTask.duedate])
+            await client.query(sql, [userId, removedTask.completed ? removedTask.completed_order : removedTask.task_order, removedTask.duedate])
 
             await client.query("COMMIT");
             res.status(200).json({ msg: "task deleted", task: removedTask })
