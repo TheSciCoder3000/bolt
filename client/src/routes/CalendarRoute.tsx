@@ -1,5 +1,5 @@
 import { addTask, fetchTasksByMonth } from "api/task"
-import CalendarContainer from "components/calendar"
+import MonthlyCalendar from "components/calendar/MonthlyCalendar"
 import { format, parse, startOfToday } from "date-fns"
 import { useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
@@ -22,10 +22,16 @@ const CalendarRoute = () => {
   }, [currentMonth, ModalData, setModalData])
 
   return (
-    <div className="w-full">
-      <CalendarContainer 
+    <div className="relative w-full">
+      <MonthlyCalendar 
         onMonthChange={date => setCurrentMonth(format(date, "MMM-yyyy"))}
         tasks={tasks} />
+      <button 
+        className='
+        aspect-square rounded-full fixed bg-green-500 p-3 text-xs font-bold
+        right-10 bottom-4 text-white'>
+        Monthly
+      </button>
     </div>
   )
 }
