@@ -1,4 +1,4 @@
-import { fetchTasksByMonth } from 'api/task';
+import { deleteTask, fetchTasksByMonth } from 'api/task';
 import TaskItemContextMenu, { CbFromContext, DataFromContext } from 'components/modal/TaskItemContextMenu';
 import React, { LegacyRef, useEffect, useState } from 'react'
 import { useOverflowDetector } from 'react-detectable-overflow';
@@ -14,8 +14,10 @@ const initialContextMenuState = {
 
 interface DayTaskListProps {
     tasks: TaskListT;
+    refreshTasks: () => void;
+
 }
-const DayTaskList: React.FC<DayTaskListProps> = ({ tasks }) => {
+const DayTaskList: React.FC<DayTaskListProps> = ({ tasks, refreshTasks }) => {
     const { ref, overflow } = useOverflowDetector({});
     const [contextMenu, setContextMenu] = useState(initialContextMenuState);
 
@@ -36,9 +38,9 @@ const DayTaskList: React.FC<DayTaskListProps> = ({ tasks }) => {
         const taskData = tasks.find(item => item.id === contextMenu.id);
         const taskIndx = tasks.findIndex(item => item.id === contextMenu.id)
         if (!taskData || taskIndx === -1) return
-    
+        console.log(data)
         if (data === null) {
-          // delete task
+          deleteTask(taskData.id).then(refreshTasks)
         } else {
           // update task
         }

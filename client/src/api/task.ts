@@ -80,3 +80,11 @@ export async function fetchTasksByMonth(year: number, month: number) {
         url: `http://localhost:3005/api/task/month/${year}-${month}`
     }).then(res => TasksByConstraint.parse(res.data.tasks))
 }
+
+export async function deleteTask(id: string) {
+    return axios({
+        method: "delete",
+        withCredentials: true,
+        url: `http://localhost:3005/api/task/${id}`
+    }).then(res => res.data)
+}
