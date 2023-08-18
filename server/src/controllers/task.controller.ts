@@ -4,12 +4,13 @@ import { Request, Response } from "express";
 import { z } from "zod";
 
 const getAllTasks = (req: Request, res: Response) => {
+    console.log("running all tasks")
     if (!req.isAuthenticated() || !req.session.passport?.user) 
         res.status(403).json({
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         }); 
     else {
-        db.query("SELECT * FROM task WHERE user_id = $1 ORDER BY task_order ->> 'today';", [req.session.passport.user])
+        db.query("SELECT * FROM task WHERE user_id = $1 ORDER BY duedate, task_order, completed_order;", [req.session.passport.user])
             .then(result => res.status(200).json({
                 status: "success",
                 msg: "tasks found",
@@ -21,6 +22,7 @@ const getAllTasks = (req: Request, res: Response) => {
 }
 
 const getTask = (req: Request, res: Response) => {
+    console.log("getting one task")
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
@@ -38,6 +40,10 @@ const getTask = (req: Request, res: Response) => {
     }
 }
 
+const AddTaskConstraint = z.object({
+    name: z.string(),
+    date: z.string(),
+})
 const addTask = async (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
@@ -47,10 +53,6 @@ const addTask = async (req: Request, res: Response) => {
     else {
         const client = await db.getClient();
 
-        const AddTaskConstraint = z.object({
-            name: z.string(),
-            date: z.string(),
-        })
         try {
             await client.query("BEGIN");
             const data = AddTaskConstraint.parse(req.body);
@@ -194,6 +196,42 @@ const fetchTaskByDate = async (req: Request, res: Response) => {
     }
 }
 
+const deleteTask = async (req: Request, res: Response) => {
+    console.log("working")
+    const userId = req.session.passport?.user;
+    const taskId = req.params.id;
+    const client = await db.getClient();
+    if (!req.isAuthenticated() || !userId) 
+        res.status(403).json({
+            status: "forbidden", msg: "unable to access resource as an unatheticated user"
+        });
+    else {
+        try {
+            await client.query("BEGIN");
+
+            const removedTask = await client.query("DELETE FROM task WHERE id = $1 AND user_id = $2 returning *;", [taskId, userId])
+                .then(res => res.rows[0]);
+
+            const order_string = removedTask.completed ? "completed_order" : "task_order"
+            const sql = format(
+                `UPDATE task SET %s = %s - 1 
+                    WHERE user_id = $1 AND 
+                        %s >= $2 AND
+                        duedate = $3;`, 
+                order_string, 
+                order_string,
+                order_string
+            );
+            await client.query(sql, [userId, removedTask.task_order, removedTask.duedate])
+
+            await client.query("COMMIT");
+            res.status(200).json({ msg: "task deleted", task: removedTask })
+        } catch (e) {
+            res.status(500).json({ msg: "db error" })
+        }
+    }
+}
+
 const YearMonthConstraint = z.coerce.number().array().min(2).max(2).nonempty();
 const fetchTaskByMonth = async (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
@@ -235,5 +273,7 @@ export default {
     fetchAllOverdueCategories,
     fetchAllCompletedCategories,
     fetchTaskByDate,
-    fetchTaskByMonth
+    fetchTaskByMonth,
+    deleteTask,
+    getTask
 }

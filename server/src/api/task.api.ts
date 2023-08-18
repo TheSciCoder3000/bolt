@@ -8,9 +8,9 @@ app.route("/api/task")
     .post(controller.addTask);
 
 app.route("/api/task/:id")
-    .get()
+    .get(controller.getTask)
     .put(controller.updateTask)
-    .delete();
+    .delete(controller.deleteTask);
 
 app.route("/api/task/overdue")
     .post(controller.fetchAllOverdueCategories)
@@ -24,4 +24,4 @@ app.route("/api/task/date/:dateString")
 app.route("/api/task/month/:yearMonth")
     .get(controller.fetchTaskByMonth)
 
-export default app;
+    export default app;
