@@ -32,14 +32,15 @@ const colStartClasses = [
 const classNames = (...classes: (string | boolean)[]) => classes.filter(Boolean).join(" ");
 
 interface CalendarContainerProps {
-  onDateSelect?: (date: Date) => void
-  onMonthChange?: (date: Date) => void
-  tasks: Awaited<ReturnType<typeof fetchTasksByMonth>>
+  onDateSelect?: (date: Date) => void;
+  onMonthChange?: (date: Date) => void;
+  tasks: Awaited<ReturnType<typeof fetchTasksByMonth>>;
+  refreshTasks: () => void;
 }
 
 type FilterKeyT = "all" | "completed" | "unfinished"
 
-const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks }) => {
+const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks, refreshTasks }) => {
   const today = startOfToday();
   const [selectedDate, setSelectedDate] = useState(format(today, "MMM-dd-yyyy"));
   const [currentMonth, setCurrentMonth] = useState(format(today, "MMM-yyyy"));
@@ -155,7 +156,7 @@ const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks
                 )}>{format(day.date, 'd')}</button>
               </div>
 
-              <DayTaskList tasks={day.tasks} />
+              <DayTaskList refreshTasks={refreshTasks} tasks={day.tasks} />
             </div>
           ))}
         </div>

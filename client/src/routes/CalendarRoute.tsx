@@ -1,7 +1,7 @@
 import { addTask, fetchTasksByMonth } from "api/task"
 import MonthlyCalendar from "components/calendar/MonthlyCalendar"
 import { format, parse, startOfToday } from "date-fns"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
 const CalendarRoute = () => {
@@ -9,21 +9,24 @@ const CalendarRoute = () => {
   const [currentMonth, setCurrentMonth] = useState(format(startOfToday(), "MMM-yyyy"));
   const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: string } } | null>>>()
 
+  const refreshTasks = useCallback(() => {
+    const monthDate = parse(currentMonth, "MMM-yyyy", new Date());
+    fetchTasksByMonth(monthDate.getFullYear(), monthDate.getMonth() + 1)
+      .then(setTasks)
+  }, [currentMonth])
+
   useEffect(() => {
     if (ModalData) {
       if (ModalData.method === "create") addTask(ModalData.data)
       setModalData(null)
-    } else {
-      const monthDate = parse(currentMonth, "MMM-yyyy", new Date());
-      fetchTasksByMonth(monthDate.getFullYear(), monthDate.getMonth() + 1)
-        .then(setTasks)
-    }
+    } else refreshTasks()
 
-  }, [currentMonth, ModalData, setModalData])
+  }, [currentMonth, ModalData, setModalData, refreshTasks])
 
   return (
     <div className="relative w-full">
-      <MonthlyCalendar 
+      <MonthlyCalendar
+        refreshTasks={refreshTasks}
         onMonthChange={date => setCurrentMonth(format(date, "MMM-yyyy"))}
         tasks={tasks} />
       <button 
