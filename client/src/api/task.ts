@@ -1,5 +1,5 @@
 import axios from "axios";
-import { IncTaskState, taskState } from "store/task.slice";
+import { taskState } from "store/task.slice";
 import { z } from "zod";
 
 interface ServerResponse {
@@ -30,15 +30,16 @@ export async function addTask(data: { name: string, date: string }) {
     })
 }
 
-export async function updateTask(data: IncTaskState) {
+export async function updateTask(id: string, name: string, completed: boolean) {
     return axios({
         method: "put",
         data: {
-
+            name,
+            completed
         },
         withCredentials: true,
-        url: `http://localhost:3005/api/task/${data.id}`
-    })
+        url: `http://localhost:3005/api/task/${id}`
+    }).then(res => res.data)
 }
 
 export async function fetchOverdueCategories(date: string) {

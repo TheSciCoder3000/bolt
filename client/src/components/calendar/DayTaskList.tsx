@@ -1,7 +1,8 @@
-import { deleteTask, fetchTasksByMonth } from 'api/task';
+import { deleteTask, fetchTasksByMonth, updateTask } from 'api/task';
 import TaskItemContextMenu, { CbFromContext, DataFromContext } from 'components/modal/TaskItemContextMenu';
 import React, { LegacyRef, useEffect, useState } from 'react'
 import { useOverflowDetector } from 'react-detectable-overflow';
+import { classNames } from 'util';
 
 type TaskListT = Awaited<ReturnType<typeof fetchTasksByMonth>>;
 const initialContextMenuState = {
@@ -38,11 +39,11 @@ const DayTaskList: React.FC<DayTaskListProps> = ({ tasks, refreshTasks }) => {
         const taskData = tasks.find(item => item.id === contextMenu.id);
         const taskIndx = tasks.findIndex(item => item.id === contextMenu.id)
         if (!taskData || taskIndx === -1) return
-        console.log(data)
         if (data === null) {
-          deleteTask(taskData.id).then(refreshTasks)
+            deleteTask(taskData.id).then(refreshTasks)
         } else {
-          // update task
+            const newData = typeof data === "function" ? data(taskData) : data;
+            updateTask(contextMenu.id, newData.name, newData.completed).then(refreshTasks)
         }
     }
 
@@ -53,7 +54,10 @@ const DayTaskList: React.FC<DayTaskListProps> = ({ tasks, refreshTasks }) => {
             {tasks.map(task => (
                 <div 
                     onContextMenu={e => contextMenuHandler(e, task.id, task.completed)} 
-                    className='bg-black text-white text-xs truncate px-2 py-1' 
+                    className={classNames(
+                        'text-white text-xs truncate px-2 py-1',
+                        task.completed ? "bg-green-500" : "bg-red-500"
+                    )}
                     key={task.id}>
                         {task.name}
                 </div>

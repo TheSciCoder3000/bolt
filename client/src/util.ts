@@ -115,3 +115,5 @@ export function weekCount(year: number, month_number: number) {
 }
 
 export const range = (n: number) => Array.from(Array(n).keys())
+
+export const classNames = (...classes: (string | boolean)[]) => classes.filter(Boolean).join(" ");

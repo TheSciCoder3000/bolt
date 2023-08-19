@@ -195,12 +195,15 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
         const data = SocketUpdateConstraint.parse(unknownData);
 
+        // fetch task past data
         const pastData = await client.query(
             "SELECT * FROM task WHERE user_id = $1 AND id = $2;",
             [userId, data.id]
         ).then(res => res.rows[0])
 
+        // if toggle task completed
         if (pastData.completed != data.completed) {
+            // get the last value of task_order/completed_order
             const { max_order, completed_order } = await client.query(
                 "SELECT MAX(task_order) as max_order, MAX(completed_order) as max_completed FROM task WHERE user_id = $1 AND duedate = $2;",
                 [userId, pastData.duedate]
@@ -209,6 +212,7 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
                 completed_order: res.rows[0].max_completed === null ? 0 : res.rows[0].max_completed + 1
             }));
 
+            // create an update order sql string
             const dataOrder = data.completed ? format(", task_order = NULL, completed_order = %s", completed_order) :
                                 format(", task_order = %s, completed_order = NULL", max_order);
 

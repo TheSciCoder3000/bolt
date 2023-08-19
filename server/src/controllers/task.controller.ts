@@ -94,15 +94,71 @@ const addTask = async (req: Request, res: Response) => {
     }
 }
 
-const updateTask = (req: Request, res: Response) => {
+const UpdateTaskConstraint = z.object({ name: z.string(), completed: z.boolean() })
+const updateTask = async (req: Request, res: Response) => {
     const userId = req.session.passport?.user;
+    const client = await db.getClient();
+    const taskId = req.params.id;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         });
-    
     else {
+        try {
+            const data = UpdateTaskConstraint.parse(req.body);
 
+            const pastData = await client.query(
+                "SELECT * FROM task WHERE user_id = $1 AND id = $2;",
+                [userId, taskId]
+            ).then(res => res.rows[0])
+    
+            // if toggle task completed
+            if (pastData.completed != data.completed) {
+                // get the last value of task_order/completed_order
+                const { max_order, completed_order } = await client.query(
+                    "SELECT MAX(task_order) as max_order, MAX(completed_order) as max_completed FROM task WHERE user_id = $1 AND duedate = $2;",
+                    [userId, pastData.duedate]
+                ).then(res => ({
+                    max_order: res.rows[0].max_order === null ? 0 : res.rows[0].max_order + 1,
+                    completed_order: res.rows[0].max_completed === null ? 0 : res.rows[0].max_completed + 1
+                }));
+    
+                // create an update order sql string
+                const dataOrder = data.completed ? format(", task_order = NULL, completed_order = %s", completed_order) :
+                                    format(", task_order = %s, completed_order = NULL", max_order);
+    
+                const sql = format(
+                    "UPDATE task SET name = $1, completed = $2%s WHERE user_id = $3 AND id = $4;",
+                    dataOrder
+                )
+                await client.query(sql, [data.name, data.completed, userId, taskId]);
+    
+                const order_string = data.completed ? "task_order" : "completed_order";
+    
+                const sqlUpdate = format(
+                    `UPDATE task SET %s = %s - 1
+                        WHERE user_id = $1 AND 
+                              %s >= $2 AND
+                              duedate = $3 returning id, name, duedate, task_order, completed_order;`, 
+                    order_string, 
+                    order_string,
+                    order_string
+                );
+                await client.query(sqlUpdate, [userId, pastData[order_string], pastData.duedate])
+                
+            } else {
+                await client.query(
+                    "UPDATE task SET name = $1, completed = $2 WHERE user_id = $3 AND id = $4;",
+                    [data.name, data.completed, userId, taskId]
+                )
+            }
+            res.status(200).json({ msg: "task updated" })
+            
+        } catch (e) {
+            client.query("ROLLBACK");
+            console.log(e);
+            res.status(500).json({ msg: "db error" })
+        }
     }
 }
 

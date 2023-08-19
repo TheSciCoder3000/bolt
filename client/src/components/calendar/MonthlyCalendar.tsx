@@ -110,7 +110,7 @@ const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks
         <div>
           <h1 className="text-3xl">{format(firstDayCurrentMonth, "MMMM yyyy")}</h1>
         </div>
-        <select name="filter-task" onChange={e => setFilterKey(e.target.value as FilterKeyT)}>
+        <select className="outline-none" name="filter-task" onChange={e => setFilterKey(e.target.value as FilterKeyT)}>
           <option value="all">All</option>
           <option value="unfinished">Unfinished</option>
           <option value="completed">Completed</option>
@@ -120,8 +120,8 @@ const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks
             <button onClick={goToToday} className="border-2 font-semibold py-1 px-4 text-xs rounded-md text-green-500 border-green-500 hover:bg-green-500 hover:text-white">Go to Today</button>
           )}
           <div className="h-full flex justify-center items-center space-x-7 pr-5">
-            <button className="text-3xl hover:text-gray-400" onClick={() => switchMonth(-1)}>{"<"}</button>
-            <button className="text-3xl hover:text-gray-400" onClick={() => switchMonth(1)}>{">"}</button>
+            <button className="text-3xl hover:text-gray-400 outline-none" onClick={() => switchMonth(-1)}>{"<"}</button>
+            <button className="text-3xl hover:text-gray-400 outline-none" onClick={() => switchMonth(1)}>{">"}</button>
           </div>
         </div>
       </div>
