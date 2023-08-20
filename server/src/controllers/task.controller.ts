@@ -2,6 +2,7 @@ import db from "../model";
 import format from "pg-format";
 import { Request, Response } from "express";
 import { z } from "zod";
+import { addTaskDb } from "src/model/task.db";
 
 const getAllTasks = (req: Request, res: Response) => {
     console.log("running all tasks")
@@ -57,29 +58,20 @@ const addTask = async (req: Request, res: Response) => {
             await client.query("BEGIN");
             const data = AddTaskConstraint.parse(req.body);
 
+            // set order string to task_order by default
             const order_string = "task_order"
-            const task_orderFormat = format("SELECT MAX(%s) as max FROM task WHERE user_id = $1 AND duedate = $2;", order_string)
-            const task_order = await client.query(task_orderFormat, [userId, data.date])
-                    .then(res => res.rows[0].max === null ? 0 : (res.rows[0].max + 1));
 
-            const taskId = await client.query(
-                format(`INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, %s) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, order_string), 
-                [
-                    data.name || "", 
-                    false,
-                    userId,
-                    data.date,
-                    null,
-                    null,
-                    null,
-                    null,
-                    task_order,
-                ]
-            ).then(res => res.rows[0].id)
-
-            
-
+            await addTaskDb(
+                client,
+                userId,
+                {
+                    name: data.name,
+                    completed: false,
+                    duedate: data.date
+                },
+                order_string,
+                null
+            )
 
             await client.query("COMMIT")
             res.status(203).json({ msg: "task successfully added" })

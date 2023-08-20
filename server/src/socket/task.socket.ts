@@ -4,6 +4,7 @@ import format from "pg-format";
 import { Server } from "socket.io";
 import { SessionSocket } from ".";
 import { z } from "zod";
+import { addTaskDb } from "src/model/task.db";
 
 
 const FetchDataConstraint = z.object({
@@ -65,7 +66,7 @@ const BasicTaskConstraint = z.object({
 
 const SocketAddDataConstraint = z.object({
     task_order: z.number().nullable(),                      // task target position
-    duedate: z.coerce.date(),                                    // date the task is assigned
+    duedate: z.string(),                                    // date the task is assigned
     preData: BasicTaskConstraint.nullable().optional(),     // data when task is created
     category: FetchDataConstraint,                          // used to filter the task after the operation finishes
     isCompleted: z.boolean()
@@ -98,44 +99,21 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         const data = SocketAddDataConstraint.parse(unknownData);
         console.log(data)
 
+        // choose what order to update
         const order_string = data.isCompleted ? "completed_order" : "task_order"
-        if (data.task_order != null) {
-            const sql = format(
-                `UPDATE task SET %s = %s + 1 
-                    WHERE user_id = $1 AND 
-                          %s >= $2 AND
-                          duedate = $3;`, 
-                order_string, 
-                order_string,
-                order_string
-            );
-            await client.query(sql, [userId, data.task_order, data.duedate])
-        }
 
-        const task_orderFormat = format("SELECT MAX(%s) as max FROM task WHERE user_id = $1 AND duedate = $2;", order_string)
-        const task_order = data.task_order || 
-            await client.query(task_orderFormat, [userId, data.duedate])
-                .then(res => res.rows[0].max === null ? 0 : (res.rows[0].max + 1));
-
-        const taskId = await client.query(
-            format(`INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, %s) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id;`, order_string), 
-            [
-                data.preData?.name || "", 
-                data.isCompleted ? true : (data.preData?.completed || false),
-                userId,
-                data.duedate,
-                null,
-                null,
-                null,
-                null,
-                task_order,
-            ]
-        ).then(res => res.rows[0].id)
-
+        const { id: taskId } = await addTaskDb(
+            client,
+            userId,
+            {
+                name: data.preData?.name || "",
+                duedate: data.duedate,
+                completed: data.isCompleted ? true : (data.preData?.completed || false)
+            },
+            order_string,
+            data.task_order
+        )
         
-
-
         await client.query("COMMIT")
 
         const taskData = await prefectchTaskData(client, userId, data.category)
