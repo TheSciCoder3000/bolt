@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon dist/server.js",
+    "start": "nodemon dist/src/server.js",
     "ts:watch": "npx tsc -w"
   },
   "keywords": [],

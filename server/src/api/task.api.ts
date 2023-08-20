@@ -8,9 +8,9 @@ app.route("/api/task")
     .post(controller.addTask);
 
 app.route("/api/task/:id")
-    .get()
+    .get(controller.getTask)
     .put(controller.updateTask)
-    .delete();
+    .delete(controller.deleteTask);
 
 app.route("/api/task/overdue")
     .post(controller.fetchAllOverdueCategories)
@@ -18,4 +18,10 @@ app.route("/api/task/overdue")
 app.route("/api/task/completed")
     .post(controller.fetchAllCompletedCategories)
 
-export default app;
+app.route("/api/task/date/:dateString")
+    .get(controller.fetchTaskByDate)
+
+app.route("/api/task/month/:yearMonth")
+    .get(controller.fetchTaskByMonth)
+
+    export default app;

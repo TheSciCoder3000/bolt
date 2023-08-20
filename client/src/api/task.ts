@@ -1,5 +1,6 @@
 import axios from "axios";
-import { IncTaskState, taskState } from "store/task.slice";
+import { taskState } from "store/task.slice";
+import { z } from "zod";
 
 interface ServerResponse {
     status: string;
@@ -18,27 +19,27 @@ export async function fetchTasks() {
     .catch(() => [] as taskState[])
 }
 
-export async function addTask(data: IncTaskState, category: {name: string, order: number | null, affected: string[]}) {
+export async function addTask(data: { name: string, date: string }) {
     return axios({
         method: "post",
         data: {
             ...data,
-            category
         },
         withCredentials: true,
         url: "http://localhost:3005/api/task"
     })
 }
 
-export async function updateTask(data: IncTaskState) {
+export async function updateTask(id: string, name: string, completed: boolean) {
     return axios({
         method: "put",
         data: {
-
+            name,
+            completed
         },
         withCredentials: true,
-        url: `http://localhost:3005/api/task/${data.id}`
-    })
+        url: `http://localhost:3005/api/task/${id}`
+    }).then(res => res.data)
 }
 
 export async function fetchOverdueCategories(date: string) {
@@ -57,4 +58,34 @@ export async function fetchCompletedCategories(date: string) {
         withCredentials: true,
         url: "http://localhost:3005/api/task/completed"
     }).then(res => res.data.category)
+}
+
+const TasksByConstraint = z.object({
+    id: z.string(),
+    name: z.string(),
+    duedate: z.string(),
+    completed: z.boolean()
+}).array()
+export async function fetchTaskByDate(date: string) {
+    return axios({
+        method: "get",
+        withCredentials: true,
+        url: `http://localhost:3005/api/task/date/${date}`
+    }).then(res => TasksByConstraint.parse(res.data.tasks))
+}
+
+export async function fetchTasksByMonth(year: number, month: number) {
+    return axios({
+        method: "get",
+        withCredentials: true,
+        url: `http://localhost:3005/api/task/month/${year}-${month}`
+    }).then(res => TasksByConstraint.parse(res.data.tasks))
+}
+
+export async function deleteTask(id: string) {
+    return axios({
+        method: "delete",
+        withCredentials: true,
+        url: `http://localhost:3005/api/task/${id}`
+    }).then(res => res.data)
 }

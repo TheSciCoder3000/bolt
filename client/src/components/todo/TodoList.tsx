@@ -5,7 +5,7 @@ import { useParams } from "react-router-dom";
 import { dateToString } from "util";
 import { CategoryState, SocketAddTask, SocketDeleteTask, SocketUpdateTask, useSocketOn } from "hooks/socket";
 import { Socket } from "socket.io-client";
-import TaskItemContextMenu from 'components/modal/TaskItemContextMenu';
+import TaskItemContextMenu, { CbFromContext, DataFromContext } from 'components/modal/TaskItemContextMenu';
 
 const initialContextMenuState = {
     show: false,
@@ -24,12 +24,6 @@ interface todoTask {
 
 type SavingStates = "saving" | "failed" | "saved"
 type FocusInputType = { [key: string]: HTMLInputElement | null }
-
-export interface DataFromContext {
-  name: string;
-  completed: boolean;
-}
-export type CbFromContext = (state: DataFromContext) => DataFromContext
 
 interface TodoListProps {
   category: CategoryState;
