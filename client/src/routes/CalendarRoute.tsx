@@ -1,13 +1,16 @@
 import { addTask, fetchTasksByMonth } from "api/task"
+import CalendarSidebar from "components/calendar/CalendarSidebar"
 import MonthlyCalendar from "components/calendar/MonthlyCalendar"
 import { format, parse, startOfToday } from "date-fns"
 import { useCallback, useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
+export type CalendarView = "month" | "week" | "day";
 const CalendarRoute = () => {
   const [tasks, setTasks] = useState<Awaited<ReturnType<typeof fetchTasksByMonth>>>([])
   const [currentMonth, setCurrentMonth] = useState(format(startOfToday(), "MMM-yyyy"));
   const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: string } } | null>>>()
+  const [view, setView] = useState<CalendarView>("month")
 
   const refreshTasks = useCallback(() => {
     const monthDate = parse(currentMonth, "MMM-yyyy", new Date());
@@ -15,6 +18,7 @@ const CalendarRoute = () => {
       .then(setTasks)
   }, [currentMonth])
 
+  // useEffect for modalData
   useEffect(() => {
     if (ModalData) {
       if (ModalData.method === "create") addTask(ModalData.data)
@@ -24,17 +28,12 @@ const CalendarRoute = () => {
   }, [currentMonth, ModalData, setModalData, refreshTasks])
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full flex">
+      <CalendarSidebar view={view} onViewChange={setView} />
       <MonthlyCalendar
         refreshTasks={refreshTasks}
         onMonthChange={date => setCurrentMonth(format(date, "MMM-yyyy"))}
         tasks={tasks} />
-      <button 
-        className='
-        aspect-square rounded-full fixed bg-green-500 p-3 text-xs font-bold
-        right-10 bottom-4 text-white'>
-        Monthly
-      </button>
     </div>
   )
 }
