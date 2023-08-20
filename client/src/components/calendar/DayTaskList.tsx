@@ -1,6 +1,6 @@
 import { deleteTask, fetchTasksByMonth, updateTask } from 'api/task';
 import TaskItemContextMenu, { CbFromContext, DataFromContext } from 'components/modal/TaskItemContextMenu';
-import React, { LegacyRef, useEffect, useState } from 'react'
+import React, { LegacyRef, useState } from 'react'
 import { useOverflowDetector } from 'react-detectable-overflow';
 import { classNames } from 'util';
 
@@ -21,11 +21,6 @@ interface DayTaskListProps {
 const DayTaskList: React.FC<DayTaskListProps> = ({ tasks, refreshTasks }) => {
     const { ref, overflow } = useOverflowDetector({});
     const [contextMenu, setContextMenu] = useState(initialContextMenuState);
-
-
-    useEffect(() => {
-        console.log(overflow)
-    }, [overflow])
 
     const contextMenuHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>, id: string, completed: boolean) => {
         e.preventDefault();
@@ -50,7 +45,7 @@ const DayTaskList: React.FC<DayTaskListProps> = ({ tasks, refreshTasks }) => {
     const closeContextMenu = () => setContextMenu(initialContextMenuState);
 
     return (
-        <div ref={ref as LegacyRef<HTMLDivElement>} className='relative h-full space-y-1 overflow-hidden'>
+        <div ref={ref as LegacyRef<HTMLDivElement>} className='relative space-y-1 overflow-hidden'>
             {tasks.map(task => (
                 <div 
                     onContextMenu={e => contextMenuHandler(e, task.id, task.completed)} 

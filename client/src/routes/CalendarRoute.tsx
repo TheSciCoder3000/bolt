@@ -5,12 +5,14 @@ import { format, parse, startOfToday } from "date-fns"
 import { useCallback, useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
+export type FilterKeyT = "all" | "completed" | "unfinished"
 export type CalendarView = "month" | "week" | "day";
 const CalendarRoute = () => {
   const [tasks, setTasks] = useState<Awaited<ReturnType<typeof fetchTasksByMonth>>>([])
   const [currentMonth, setCurrentMonth] = useState(format(startOfToday(), "MMM-yyyy"));
   const [ModalData, setModalData] = useOutletContext<ReturnType<typeof useState<{ method: string, data: { name: string, date: string } } | null>>>()
   const [view, setView] = useState<CalendarView>("month")
+  const [filterKey, setFilterKey] = useState<FilterKeyT>("all")
 
   const refreshTasks = useCallback(() => {
     const monthDate = parse(currentMonth, "MMM-yyyy", new Date());
@@ -29,11 +31,12 @@ const CalendarRoute = () => {
 
   return (
     <div className="relative w-full flex">
-      <CalendarSidebar view={view} onViewChange={setView} />
+      <CalendarSidebar view={view} onViewChange={setView} onStatusChange={setFilterKey} />
       <MonthlyCalendar
         refreshTasks={refreshTasks}
         onMonthChange={date => setCurrentMonth(format(date, "MMM-yyyy"))}
-        tasks={tasks} />
+        tasks={tasks}
+        filterKey={filterKey} />
     </div>
   )
 }
