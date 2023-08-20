@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 
+
+// TODO: depracated
 export function useIsInViewport() {
     const [isIntersecting, setIsIntersecting] = useState(true);
     const activeDateElement = useRef<HTMLButtonElement>(null)
@@ -20,7 +22,6 @@ export function useIsInViewport() {
     );
   
     useEffect(() => {
-        console.log("ref update")
         if (!activeDateElement.current) return
         observer.observe(activeDateElement.current);
     
