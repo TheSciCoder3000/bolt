@@ -4,7 +4,7 @@ import format from "pg-format";
 import { Server } from "socket.io";
 import { SessionSocket } from ".";
 import { z } from "zod";
-import { addTaskDb } from "../model/task.db";
+import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/task.db";
 
 
 const FetchDataConstraint = z.object({
@@ -136,19 +136,7 @@ const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) 
 
         const data = SocketDeleteDataConstraint.parse(unkownData);
 
-        await client.query("DELETE FROM task WHERE id = $1 AND user_id = $2;", [data.id, userId])
-
-        const order_string = data.category.isCompleted ? "completed_order" : "task_order"
-        const sql = format(
-            `UPDATE task SET %s = %s - 1 
-                WHERE user_id = $1 AND 
-                      %s >= $2 AND
-                      duedate = $3;`, 
-            order_string, 
-            order_string,
-            order_string
-        );
-        await client.query(sql, [userId, data.task_order, data.duedate])
+        await deleteTaskDb(client, userId, data.id)
 
         await client.query("COMMIT")
 
@@ -173,53 +161,12 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
         const data = SocketUpdateConstraint.parse(unknownData);
 
-        // fetch task past data
-        const pastData = await client.query(
-            "SELECT * FROM task WHERE user_id = $1 AND id = $2;",
-            [userId, data.id]
-        ).then(res => res.rows[0])
-
-        // if toggle task completed
-        if (pastData.completed != data.completed) {
-            // get the last value of task_order/completed_order
-            const { max_order, completed_order } = await client.query(
-                "SELECT MAX(task_order) as max_order, MAX(completed_order) as max_completed FROM task WHERE user_id = $1 AND duedate = $2;",
-                [userId, pastData.duedate]
-            ).then(res => ({
-                max_order: res.rows[0].max_order === null ? 0 : res.rows[0].max_order + 1,
-                completed_order: res.rows[0].max_completed === null ? 0 : res.rows[0].max_completed + 1
-            }));
-
-            // create an update order sql string
-            const dataOrder = data.completed ? format(", task_order = NULL, completed_order = %s", completed_order) :
-                                format(", task_order = %s, completed_order = NULL", max_order);
-
-            const sql = format(
-                "UPDATE task SET name = $1, completed = $2%s WHERE user_id = $3 AND id = $4;",
-                dataOrder
-            )
-            await client.query(sql, [data.name, data.completed, userId, data.id]);
-
-            const order_string = data.completed ? "task_order" : "completed_order";
-
-            const sqlUpdate = format(
-                `UPDATE task SET %s = %s - 1
-                    WHERE user_id = $1 AND 
-                          %s >= $2 AND
-                          duedate = $3 returning id, name, duedate, task_order, completed_order;`, 
-                order_string, 
-                order_string,
-                order_string
-            );
-            await client.query(sqlUpdate, [userId, pastData[order_string], data.category.date])
-                .then(res => console.log(res.rows))
-            
-        } else {
-            await client.query(
-                "UPDATE task SET name = $1, completed = $2 WHERE user_id = $3 AND id = $4;",
-                [data.name, data.completed, userId, data.id]
-            )
-        }
+        const pastData = await updateTaskDb(
+            client, 
+            userId, 
+            data.id, 
+            { name: data.name, completed: data.completed, duedate: data.category.date}
+        )
 
         await client.query("COMMIT")
 
