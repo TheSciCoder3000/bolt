@@ -4,7 +4,7 @@ import format from "pg-format";
 import { Server } from "socket.io";
 import { SessionSocket } from ".";
 import { z } from "zod";
-import { addTaskDb } from "src/model/task.db";
+import { addTaskDb } from "../model/task.db";
 
 
 const FetchDataConstraint = z.object({

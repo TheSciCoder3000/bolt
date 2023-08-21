@@ -2,7 +2,7 @@ import db from "../model";
 import format from "pg-format";
 import { Request, Response } from "express";
 import { z } from "zod";
-import { addTaskDb } from "src/model/task.db";
+import { addTaskDb } from "../model/task.db";
 
 const getAllTasks = (req: Request, res: Response) => {
     console.log("running all tasks")
