@@ -48,17 +48,6 @@ const fetchSocketTask = (socket: SessionSocket) => async (category: unknown) => 
     }
 }
 
-const fetchSocketCompleteTask = (socket: SessionSocket) => async () => {
-    const userId = socket.request.session.passport.user
-    const tasks = await db.query(
-        "SELECT * FROM task WHERE user_id = $1 AND completed = true ORDER BY completed_order;",
-        [userId]
-    ).then(res => res.rows)
-
-    socket.emit("receive-tasks", tasks);
-
-}
-
 const BasicTaskConstraint = z.object({
     name: z.string(),
     completed: z.boolean()
@@ -189,7 +178,6 @@ const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
 
 export default (io: Server, socket: SessionSocket) => {
     socket.on('fetch-tasks', fetchSocketTask(socket));
-    socket.on('fetch-completed-tasks', fetchSocketCompleteTask(socket));
     socket.on("create-task", createSocketTask(socket));
     socket.on("delete-task", deleteSocketTask(socket));
     socket.on("update-task", updateSocketTask(socket));
