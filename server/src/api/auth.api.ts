@@ -12,14 +12,6 @@ export default function (passport: PassportStatic) {
     app.post("/api/logout", controllers.logout())
 
     app.post("/api/user", controllers.fetchUser())
-    
-    // app.get("/api/tasks", async (req, res) => {
-    //     console.log(req.isAuthenticated())
-    //     res.status(200).json({
-    //         status: "succeess", 
-    //         msg: req.isAuthenticated() ? "user is authenticated" : "user not authenticated",
-    //     });
-    // })
 
     return app
 }

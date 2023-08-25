@@ -40,7 +40,6 @@ const fetchSocketTask = (socket: SessionSocket) => async (category: unknown) => 
             parsedCategory
         )
             .catch(err => console.log(err));
-        console.log(taskData)
         socket.emit(`receive-tasks-${parsedCategory.date}-${parsedCategory.isCompleted.toString()}`, taskData);
     } catch (e) {
         console.log("\n\nfetch error")
@@ -86,7 +85,6 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
         await client.query("BEGIN");
 
         const data = SocketAddDataConstraint.parse(unknownData);
-        console.log(data)
 
         // choose what order to update
         const order_string = data.isCompleted ? "completed_order" : "task_order"

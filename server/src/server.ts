@@ -44,13 +44,11 @@ app.use(authApi(passport))          // auth API
 app.use(taskApi)
 
 const server = http.createServer(app);
-
-/**
- * @typedef {typeof io} Server
- */
 const io = new Server(server, { cors: corsConfig })
 
 io.engine.use(sessionConfig())
 socketListen(io)
 
-server.listen(process.env.PORT || 3005);
+server.listen(process.env.PORT || 3005, async () => {
+    console.log(`Listening to port ${process.env.PORT}`)
+});

@@ -41,14 +41,13 @@ export async function addTaskDb(client: PoolClient, userId: string, data: TaskDa
 
     // insert the task to the database
     const taskData = await client.query(
-        format(`INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, tags, %s) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *;`, order_string), 
+        format(`INSERT INTO task(name, completed, user_id, duedate, details, subject_id, parent_id, %s) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) returning *;`, order_string), 
         [
             data.name, 
             data.completed,
             userId,
             data.duedate,
-            null,
             null,
             null,
             null,

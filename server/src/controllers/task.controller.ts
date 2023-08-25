@@ -1,11 +1,9 @@
 import db from "../model";
-import format from "pg-format";
 import { Request, Response } from "express";
 import { z } from "zod";
 import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/task.db";
 
 const getAllTasks = (req: Request, res: Response) => {
-    console.log("running all tasks")
     if (!req.isAuthenticated() || !req.session.passport?.user) 
         res.status(403).json({
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
@@ -23,7 +21,6 @@ const getAllTasks = (req: Request, res: Response) => {
 }
 
 const getTask = (req: Request, res: Response) => {
-    console.log("getting one task")
     const userId = req.session.passport?.user;
     if (!req.isAuthenticated() || !userId) 
         res.status(403).json({
@@ -135,14 +132,12 @@ const fetchAllOverdueCategories = async (req: Request, res: Response) => {
                 [userId, data.date]
             ).then(res => res.rows.map(item => {
                 const date = new Date(item.duedate);
-                console.log(date)
                 date.setUTCHours(0);
                 date.setUTCMinutes(0);
                 date.setUTCSeconds(0);
                 date.setUTCMilliseconds(0);
                 return { operator: "=", isCompleted: false, date: date.toJSON() }
             }))
-            console.log(duedates)
             res.status(200).json({ count: duedates.length, category: duedates })
         } catch (e) {
             console.log(e)
@@ -167,14 +162,12 @@ const fetchAllCompletedCategories = async (req: Request, res: Response) => {
                 [userId, data.date]
             ).then(res => res.rows.map(item => {
                 const date = new Date(item.duedate);
-                console.log(date)
                 date.setUTCHours(0);
                 date.setUTCMinutes(0);
                 date.setUTCSeconds(0);
                 date.setUTCMilliseconds(0);
                 return { operator: "=", isCompleted: true, date: date.toJSON() }
             }))
-            console.log(duedates)
             res.status(200).json({ count: duedates.length, category: duedates })
         } catch (e) {
             console.log(e)
@@ -190,7 +183,6 @@ const fetchTaskByDate = async (req: Request, res: Response) => {
             status: "forbidden", msg: "unable to access resource as an unatheticated user"
         });
     else {
-        console.log(req.params.dateString)
         db.query("SELECT id, name, duedate, completed FROM task WHERE user_id = $1 AND duedate = $2;", [userId, req.params.dateString])
             .then(result => res.status(200).json({
                 status: "success",
@@ -206,7 +198,6 @@ const fetchTaskByDate = async (req: Request, res: Response) => {
 }
 
 const deleteTask = async (req: Request, res: Response) => {
-    console.log("working")
     const userId = req.session.passport?.user;
     const taskId = req.params.id;
     const client = await db.getClient();
@@ -219,6 +210,7 @@ const deleteTask = async (req: Request, res: Response) => {
             await client.query("BEGIN");
 
             const removedTask = await deleteTaskDb(client, userId, taskId);
+
             await client.query("COMMIT");
             res.status(200).json({ msg: "task deleted", task: removedTask })
         } catch (e) {
@@ -239,23 +231,20 @@ const fetchTaskByMonth = async (req: Request, res: Response) => {
     else {
         try {
             const [year, month] = YearMonthConstraint.parse(req.params.yearMonth.split("-"))
-            db.query(
+            const result = await db.query(
                 `SELECT id, name, duedate, completed 
                 FROM task 
                 WHERE user_id = $1 AND EXTRACT(MONTH FROM duedate) = $2 AND EXTRACT(YEAR FROM duedate) = $3
                 ORDER BY completed, task_order, completed_order;`, 
                 [userId, month, year]
             )
-                .then(result => res.status(200).json({
-                    status: "success",
-                    msg: "task found",
-                    results: result.rows.length,
-                    tasks: result.rows
-                }))
-                .catch((err) => {
-                    res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" })
-                    console.log(err)
-                })
+
+            res.status(200).json({
+                status: "success",
+                msg: "task found",
+                results: result.rows.length,
+                tasks: result.rows
+            })
 
         } catch (e) {
             res.status(500).json({ status: "Db error", msg: "unable to fetch tasks" })
