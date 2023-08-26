@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon dist/src/server.js",
+    "start": "nodemon dist/server.js",
     "ts:watch": "npx tsc -w"
   },
   "keywords": [],
@@ -37,9 +37,11 @@
     "passport-local": "^1.0.0",
     "pg": "^8.11.1",
     "pg-format": "^1.0.4",
-    "rimraf": "^5.0.1",
     "socket.io": "^4.7.2",
     "typescript": "^5.1.6",
     "zod": "^3.21.4"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.1"
   }
 }

@@ -20,7 +20,7 @@ export interface TaskSchema {
 }
 
 const model = {
-  query: (text: string, params: unknown[]) => pool.query(text, params),
+  query: (text: string, params?: unknown[]) => pool.query(text, params),
   getClient: async () => {
       const client = await pool.connect()
       const query = client.query

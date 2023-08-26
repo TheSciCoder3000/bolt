@@ -18,9 +18,6 @@ app.route("/api/task/overdue")
 app.route("/api/task/completed")
     .post(controller.fetchAllCompletedCategories)
 
-app.route("/api/task/date/:dateString")
-    .get(controller.fetchTaskByDate)
-
 app.route("/api/task/month/:yearMonth")
     .get(controller.fetchTaskByMonth)
 

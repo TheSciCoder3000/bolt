@@ -2,21 +2,33 @@ import axios from "axios";
 import { taskState } from "store/task.slice";
 import { z } from "zod";
 
-interface ServerResponse {
-    status: string;
-    msg: string;
-    results: number;
-    tasks: taskState[]
-}
+// TODO: replace with .env configuration
+const hostname = "http://localhost:3005"
+
+// ============================ Constraints ============================
+const TasksByConstraint = z.object({
+    id: z.string(),
+    name: z.string(),
+    duedate: z.string(),
+    completed: z.boolean()
+}).array()
 
 export async function fetchTasks() {
-    return axios<ServerResponse>({
+    return axios({
         method: "get",
         withCredentials: true,
-        url: "http://localhost:3005/api/task"
+        url: `${hostname}/api/task`
     })
     .then(result => result.data.tasks)
     .catch(() => [] as taskState[])
+}
+
+export async function fetchTasksByMonth(year: number, month: number) {
+    return axios({
+        method: "get",
+        withCredentials: true,
+        url: `${hostname}/api/task/month/${year}-${month}`
+    }).then(res => TasksByConstraint.parse(res.data.tasks))
 }
 
 export async function addTask(data: { name: string, date: string }) {
@@ -26,7 +38,7 @@ export async function addTask(data: { name: string, date: string }) {
             ...data,
         },
         withCredentials: true,
-        url: "http://localhost:3005/api/task"
+        url: `${hostname}/api/task`
     })
 }
 
@@ -38,7 +50,15 @@ export async function updateTask(id: string, name: string, completed: boolean) {
             completed
         },
         withCredentials: true,
-        url: `http://localhost:3005/api/task/${id}`
+        url: `${hostname}/api/task/${id}`
+    }).then(res => res.data)
+}
+
+export async function deleteTask(id: string) {
+    return axios({
+        method: "delete",
+        withCredentials: true,
+        url: `${hostname}/api/task/${id}`
     }).then(res => res.data)
 }
 
@@ -47,7 +67,7 @@ export async function fetchOverdueCategories(date: string) {
         method: "post",
         data: { date },
         withCredentials: true,
-        url: "http://localhost:3005/api/task/overdue"
+        url: `${hostname}/api/task/overdue`
     }).then(res => res.data.category)
 }
 
@@ -56,36 +76,6 @@ export async function fetchCompletedCategories(date: string) {
         method: "post",
         data: { date },
         withCredentials: true,
-        url: "http://localhost:3005/api/task/completed"
+        url: `${hostname}/api/task/completed`
     }).then(res => res.data.category)
-}
-
-const TasksByConstraint = z.object({
-    id: z.string(),
-    name: z.string(),
-    duedate: z.string(),
-    completed: z.boolean()
-}).array()
-export async function fetchTaskByDate(date: string) {
-    return axios({
-        method: "get",
-        withCredentials: true,
-        url: `http://localhost:3005/api/task/date/${date}`
-    }).then(res => TasksByConstraint.parse(res.data.tasks))
-}
-
-export async function fetchTasksByMonth(year: number, month: number) {
-    return axios({
-        method: "get",
-        withCredentials: true,
-        url: `http://localhost:3005/api/task/month/${year}-${month}`
-    }).then(res => TasksByConstraint.parse(res.data.tasks))
-}
-
-export async function deleteTask(id: string) {
-    return axios({
-        method: "delete",
-        withCredentials: true,
-        url: `http://localhost:3005/api/task/${id}`
-    }).then(res => res.data)
 }
