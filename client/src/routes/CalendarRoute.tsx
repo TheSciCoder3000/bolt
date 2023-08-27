@@ -23,7 +23,7 @@ const CalendarRoute = () => {
   // useEffect for modalData
   useEffect(() => {
     if (ModalData) {
-      if (ModalData.method === "create") addTask(ModalData.data)
+      if (ModalData.method === "create") addTask(ModalData.data).then(refreshTasks)
       setModalData(null)
     } else refreshTasks()
 
