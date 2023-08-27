@@ -2,6 +2,8 @@ import db from "../model";
 import bcrypt from "bcryptjs";
 import LocalPassport from "passport-local";
 import { PassportStatic } from "passport"
+import { User } from "../model/User.model";
+import { AppDataSource } from "../model/setup";
 
 declare global {
     namespace Express {
@@ -17,10 +19,16 @@ export default function(passport: PassportStatic) {
     passport.use(
         new localStrategy(async (username, password, done) => {
             try {
-                const user = await db.query("SELECT * FROM bolt_user WHERE username = $1;", [username]).then(res => {
-                    if (res.rows.length > 0) return res.rows[0];
-                    else return null;
-                });
+                // const user = await db.query("SELECT * FROM bolt_user WHERE username = $1;", [username]).then(res => {
+                //     if (res.rows.length > 0) return res.rows[0];
+                //     else return null;
+                // });
+                const userRepo = await AppDataSource.getRepository(User);
+                const user = await userRepo.findOne({
+                    where: {
+                        username: username
+                    }
+                })
                 if (!user) return done(null, false);
                 const { password: hashPassword, ...parsedUser } = user;
                 bcrypt.compare(password, hashPassword, (err, result) => {
@@ -41,8 +49,13 @@ export default function(passport: PassportStatic) {
 
     passport.deserializeUser(async (id, cb) => {
         try {
-            const user = await db.query("SELECT * FROM bolt_user WHERE id = $1;", [id]);
-            cb(null, user.rows[0]);
+            const userRepo = await AppDataSource.getRepository(User);
+            const user = await userRepo.findOne({
+                where: {
+                    id: id as string
+                }
+            })
+            cb(null, user);
         } catch (e) {
             cb(e, false);
         }
