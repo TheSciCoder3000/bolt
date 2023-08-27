@@ -71,8 +71,8 @@ const SidebarDropdown: React.FC<DropdownProps> = ({ name, items, onSelect, toggl
                 <h5 className='text-gray-400/80'>{selectValue.length > 1 ? "Custom" : selectValue[0]}</h5>
             </div>
             {(show || !toggleable) && <div className='pl-5 space-y-1'>
-                {items.map(item => (
-                    <div>
+                {items.map((item, indx) => (
+                    <div key={indx}>
                         <input checked={selectValue.includes(item)} className='mr-2' onChange={(e) => onOptonsSelect(item, e.target.checked)} type="checkbox" />
                         <span>{item as string}</span>
                     </div>
