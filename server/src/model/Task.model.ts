@@ -26,45 +26,50 @@ export class Task extends BaseEntity {
     createdat: string;
 
     @Column({ type: "text", nullable: true })
-    details: string;
+    details: string | null;
 
     @ManyToOne(
-        type => Task,
-        task => task.tasks
-    )
-    parent: Task[]
-
-    @OneToMany(
-        type => Task,
-        task => task.parent
+        () => Task,
+        task => task.tasks,
+        { nullable: true }
     )
     @JoinColumn({ name: "parent_id" })
-    tasks: Task
+    parent: Task | null
+
+    @OneToMany(
+        () => Task,
+        task => task.parent,
+        { nullable: true }
+    )
+    tasks: Task[]
 
     @ManyToOne(
-        type => User,
-        user => user.tasks
+        () => User,
+        user => user.tasks,
+        { nullable: false }
     )
     @JoinColumn({ name: "user_id" })
     user: User
 
     @ManyToOne(
-        type => Subject,
-        subj => subj.tasks
+        () => Subject,
+        subj => subj.tasks,
+        { nullable: true }
     )
-    subject: Subject;
+    @JoinColumn({ name: "subject_id" })
+    subject: Subject | null;
 
     @Column({ type: "date", nullable: false })
-    duedate: string[];
+    duedate: string;
 
     @Column({ type: "timestamp", nullable: true })
     duetime: string[];
 
     @Column({ type: "int", nullable: true })
-    task_order: number;
+    task_order: number | null;
 
     @Column({ type: "int", nullable: true })
-    completed_order: number;
+    completed_order: number | null;
 
     @Column({ type: "boolean", nullable: false, default: false })
     completed: boolean;
