@@ -12,7 +12,8 @@ services:
       - '${PGPORT}:${PGPORT}'
     command: -p ${PGPORT}
     volumes:
-        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgData:/var/lib/postgresql
+      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
   api:
     build: 
       dockerfile: Dockerfile.dev
@@ -30,3 +31,5 @@ services:
       - PGPORT=${PGPORT}
       - SECRET=${SECRET}
       - CON_STRING=${CON_STRING}
+volumes:
+  pgData: {}
