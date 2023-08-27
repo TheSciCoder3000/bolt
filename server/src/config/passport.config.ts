@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import LocalPassport from "passport-local";
 import { PassportStatic } from "passport"
 import { User } from "../model/User.model";
-import { AppDataSource } from "../model/setup";
+import AppDataSource from "../model/setup";
 
 declare global {
     namespace Express {
