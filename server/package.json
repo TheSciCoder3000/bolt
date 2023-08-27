@@ -37,7 +37,9 @@
     "passport-local": "^1.0.0",
     "pg": "^8.11.1",
     "pg-format": "^1.0.4",
+    "reflect-metadata": "^0.1.13",
     "socket.io": "^4.7.2",
+    "typeorm": "^0.3.17",
     "typescript": "^5.1.6",
     "zod": "^3.21.4"
   },
