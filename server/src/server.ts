@@ -19,7 +19,7 @@ import passportConfig from "./config/passport.config"
 import authApi from "./api/auth.api";
 import subjectApi from "./api/subject.api";
 import taskApi from "./api/task.api";
-import { AppDataSource } from "./model/setup";
+import AppDataSource from "./model/setup";
 import { User } from "./model/User.model";
 
 const app = express();
@@ -56,7 +56,5 @@ AppDataSource.initialize()
         
         server.listen(process.env.PORT || 3005, async () => {
             console.log(`Listening to port ${process.env.PORT}`)
-            const user = await AppDataSource.manager.find(User)
-            console.log(user)
         });
     })
