@@ -1,4 +1,3 @@
-import db from "../model";
 import bcrypt from "bcryptjs";
 import LocalPassport from "passport-local";
 import { PassportStatic } from "passport"
