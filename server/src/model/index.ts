@@ -33,7 +33,8 @@ const model = {
         return release.apply(client)
       }
       return client
-  }
+  },
+  pool: pool
 }
 
 export default model;
