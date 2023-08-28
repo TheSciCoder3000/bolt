@@ -101,7 +101,6 @@ export async function addTaskDb(client: EntityManager, userId: string, data: Tas
             ...(order_string === "completed_order" && { completed_order: pos }),
         })
     
-    console.log(taskData)
 
     return {
         id: taskData.identifiers[0].id as string
@@ -184,7 +183,6 @@ export async function updateTaskDb(client: EntityManager, userId: string, taskId
         //     order_string
         // );
         // await client.query(sqlUpdate, [userId, pastData[order_string], data.duedate])
-        console.log(pastData)
         await taskRepo
             .decrement(
                 {
@@ -252,7 +250,6 @@ export async function deleteTaskDb(client: EntityManager, userId: string, taskId
     //     userId, removedTask.completed ? removedTask.completed_order : removedTask.task_order, 
     //     removedTask.duedate
     // ])
-    console.log(removedTask)
     await taskRepo
         .decrement(
             {

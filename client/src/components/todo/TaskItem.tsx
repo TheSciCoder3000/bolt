@@ -43,7 +43,7 @@ const TaskItem = forwardRef<HTMLInputElement, TaskItemProps>(({ id, name, comple
                 `}
                 type="checkbox" 
                 checked={completed}
-                onClick={() => {
+                onChange={() => {
                     onChange({name: name, completed: !completed})
                     if (onUpdate) onUpdate(id, name, !completed);
                 }} />
