@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/Task.model/helper";
+import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/Task/helper";
 import { PgTransaction, TaskRepository } from "../model/setup";
 
 const getAllTasks = (req: Request, res: Response) => {

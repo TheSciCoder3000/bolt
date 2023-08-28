@@ -2,7 +2,7 @@ import { PassportStatic } from "passport";
 import bcrypt from "bcryptjs";
 import { NextFunction, Request, Response } from "express";
 import { UserRepository } from "../model/setup";
-import User from "../model/User.model";
+import User from "../model/User";
 
 declare module 'express-session' {
     export interface SessionData {

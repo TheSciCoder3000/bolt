@@ -1,9 +1,9 @@
 import { Server } from "socket.io";
 import { SessionSocket } from ".";
 import { z } from "zod";
-import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/Task.model/helper";
+import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/Task/helper";
 import { EntityManager } from "typeorm";
-import Task from "../model/Task.model";
+import Task from "../model/Task";
 import { PgTransaction } from "../model/setup";
 
 

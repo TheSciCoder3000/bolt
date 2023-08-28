@@ -1,8 +1,7 @@
 import bcrypt from "bcryptjs";
 import LocalPassport from "passport-local";
 import { PassportStatic } from "passport"
-import User from "../model/User.model";
-import AppDataSource from "../model/setup";
+import { UserRepository } from "../model/setup";
 
 declare global {
     namespace Express {
@@ -18,8 +17,7 @@ export default function(passport: PassportStatic) {
     passport.use(
         new localStrategy(async (username, password, done) => {
             try {
-                const userRepo = await AppDataSource.getRepository(User);
-                const user = await userRepo.findOne({
+                const user = await UserRepository.findOne({
                     where: {
                         username: username
                     }
@@ -39,17 +37,19 @@ export default function(passport: PassportStatic) {
     );
 
     passport.serializeUser((user, cb) => {
+        console.log("serializing user")
         cb(null, user.id);
     });
 
     passport.deserializeUser(async (id, cb) => {
+        console.log("deserializing user: ", id)
         try {
-            const userRepo = await AppDataSource.getRepository(User);
-            const user = await userRepo.findOne({
+            const user = await UserRepository.findOne({
                 where: {
                     id: id as string
                 }
             })
+            console.log(user)
             cb(null, user);
         } catch (e) {
             cb(e, false);
