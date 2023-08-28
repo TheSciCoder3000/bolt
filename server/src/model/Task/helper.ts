@@ -2,7 +2,7 @@ import { EntityManager, MoreThanOrEqual } from 'typeorm';
 import { Pool, PoolClient } from 'pg';
 import format from "pg-format";
 import Task from '.';
-import User from '../User.model';
+import User from '../User';
 
 type MakeOptional<Type, Key extends keyof Type> = Omit<Type, Key> & Partial<Pick<Type, Key>>;
 interface TaskData {

@@ -8,8 +8,8 @@ import {
     Check,
     JoinColumn
 } from "typeorm";
-import User from "../User.model";
-import Subject from "../Subject.model";
+import User from "../User";
+import Subject from "../Subject";
 
 @Entity('task')
 @Check("(task_order IS NOT NULL AND completed_order IS NULL) OR (task_order IS NULL AND completed_order IS NOT NULL)")

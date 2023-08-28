@@ -1,5 +1,5 @@
 import { Entity, Column, BaseEntity, PrimaryGeneratedColumn, OneToMany } from "typeorm";
-import Task from "../Task.model";
+import Task from "../Task";
 
 @Entity('bolt_user')
 export default class User extends BaseEntity {
