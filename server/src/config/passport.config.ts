@@ -1,7 +1,7 @@
-import db from "../model";
 import bcrypt from "bcryptjs";
 import LocalPassport from "passport-local";
 import { PassportStatic } from "passport"
+import { UserRepository } from "../model/setup";
 
 declare global {
     namespace Express {
@@ -17,10 +17,11 @@ export default function(passport: PassportStatic) {
     passport.use(
         new localStrategy(async (username, password, done) => {
             try {
-                const user = await db.query("SELECT * FROM bolt_user WHERE username = $1;", [username]).then(res => {
-                    if (res.rows.length > 0) return res.rows[0];
-                    else return null;
-                });
+                const user = await UserRepository.findOne({
+                    where: {
+                        username: username
+                    }
+                })
                 if (!user) return done(null, false);
                 const { password: hashPassword, ...parsedUser } = user;
                 bcrypt.compare(password, hashPassword, (err, result) => {
@@ -36,13 +37,20 @@ export default function(passport: PassportStatic) {
     );
 
     passport.serializeUser((user, cb) => {
+        console.log("serializing user")
         cb(null, user.id);
     });
 
     passport.deserializeUser(async (id, cb) => {
+        console.log("deserializing user: ", id)
         try {
-            const user = await db.query("SELECT * FROM bolt_user WHERE id = $1;", [id]);
-            cb(null, user.rows[0]);
+            const user = await UserRepository.findOne({
+                where: {
+                    id: id as string
+                }
+            })
+            console.log(user)
+            cb(null, user);
         } catch (e) {
             cb(e, false);
         }

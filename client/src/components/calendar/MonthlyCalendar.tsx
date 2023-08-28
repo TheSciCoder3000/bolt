@@ -48,7 +48,7 @@ interface Days {
   }[];
 }
 
-const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks, refreshTasks, filterKey }) => {
+const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks, refreshTasks, filterKey, onMonthChange }) => {
   const today = startOfToday();
   const [selectedDate, setSelectedDate] = useState(format(today, "MMM-dd-yyyy"));
   const [currentMonth, setCurrentMonth] = useState(format(today, "MMM-yyyy"));
@@ -58,6 +58,7 @@ const MonthlyCalendar: React.FC<CalendarContainerProps> = ({ onDateSelect, tasks
   const switchMonth = (amnt: number) => {
     const firstDayNextMonth = add(firstDayCurrentMonth, {months: amnt})
     setCurrentMonth(format(firstDayNextMonth, "MMM-yyyy"))
+    onMonthChange && onMonthChange(firstDayNextMonth)
   }
 
   const days: Days[] = useMemo(() => {

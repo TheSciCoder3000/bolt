@@ -1,10 +1,10 @@
-import { PoolClient, Pool } from "pg";
-import db from "../model";
-import format from "pg-format";
 import { Server } from "socket.io";
 import { SessionSocket } from ".";
 import { z } from "zod";
-import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/task.db";
+import { addTaskDb, deleteTaskDb, updateTaskDb } from "../model/Task/helper";
+import { EntityManager } from "typeorm";
+import Task from "../model/Task";
+import { PgTransaction } from "../model/setup";
 
 
 const FetchDataConstraint = z.object({
@@ -15,14 +15,22 @@ const FetchDataConstraint = z.object({
 type Category = z.infer<typeof FetchDataConstraint>
 
 // helper function
-const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, category: Category) => {
-    const sql =  format(
-        "SELECT * FROM task WHERE user_id = $1 AND duedate %s $2 AND completed = $3 ORDER BY duedate, duetime, task_order, completed_order;",
-        category.operator
+const prefectchTaskData = (dbClient: EntityManager, userId: string, category: Category) => {
+    return dbClient.getRepository(Task)
+        .find({
+            where: {
+                user: {id: userId},
+                duedate: category.date,
+                completed: category.isCompleted
+            },
+            order: {
+                duedate: "ASC",
+                duetime: "ASC",
+                task_order: "ASC",
+                completed_order: "ASC"
+            }
+        })
 
-    )
-    
-    return dbClient.query(sql, [userId, category.date, category.isCompleted]).then(result => result.rows.map(item => ({ ...item, task_order: parseInt(item.task_order) })))
 }
 
 // ========================= Sockets ========================= 
@@ -34,13 +42,14 @@ const prefectchTaskData = (dbClient: typeof db | PoolClient, userId: string, cat
 const fetchSocketTask = (socket: SessionSocket) => async (category: unknown) => {
     try {
         const parsedCategory = FetchDataConstraint.parse(category)
-        const taskData = await prefectchTaskData(
-            db, 
-            socket.request.session.passport.user,
-            parsedCategory
-        )
-            .catch(err => console.log(err));
-        socket.emit(`receive-tasks-${parsedCategory.date}-${parsedCategory.isCompleted.toString()}`, taskData);
+        await PgTransaction(async (entityManager) => {
+            const taskData = await prefectchTaskData(
+                entityManager, 
+                socket.request.session.passport.user,
+                parsedCategory
+            )
+            socket.emit(`receive-tasks-${parsedCategory.date}-${parsedCategory.isCompleted.toString()}`, taskData);
+        })
     } catch (e) {
         console.log("\n\nfetch error")
         console.error(e);
@@ -78,19 +87,13 @@ const SocketUpdateConstraint = z.object({
 
 const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
     const userId = socket.request.session.passport.user
-    const client = await db.getClient();
 
-    
-    try {
-        await client.query("BEGIN");
-
+    await PgTransaction(async entityManager => {
         const data = SocketAddDataConstraint.parse(unknownData);
-
-        // choose what order to update
         const order_string = data.isCompleted ? "completed_order" : "task_order"
 
         const { id: taskId } = await addTaskDb(
-            client,
+            entityManager,
             userId,
             {
                 name: data.preData?.name || "",
@@ -100,78 +103,53 @@ const createSocketTask = (socket: SessionSocket) => async (unknownData: unknown)
             order_string,
             data.task_order
         )
-        
-        await client.query("COMMIT")
 
-        const taskData = await prefectchTaskData(client, userId, data.category)
+        const taskData = await prefectchTaskData(entityManager, userId, data.category)
         socket.emit(`receive-tasks-${data.category.date}-${data.category.isCompleted.toString()}`, taskData, taskId);
-    } catch (e) {
-        await client.query("ROLLBACK");
+    }).catch(e => {
         console.log("Insert task error")
         console.log(e)
-    } finally {
-        client.release();
-    }
+    })
 }
 
 const deleteSocketTask = (socket: SessionSocket) => async (unkownData: unknown) => {
-    const userId = socket.request.session.passport.user
-    const client = await db.getClient();
+    const userId = socket.request.session.passport.user;
 
-    try {
-        await client.query("BEGIN");
-
+    await PgTransaction(async entityManager => {
         const data = SocketDeleteDataConstraint.parse(unkownData);
+        await deleteTaskDb(entityManager, userId, data.id);
 
-        await deleteTaskDb(client, userId, data.id)
-
-        await client.query("COMMIT")
-
-        const taskData = await prefectchTaskData(client, userId, data.category)
-
+        const taskData = await prefectchTaskData(entityManager, userId, data.category)
         socket.emit(`receive-tasks-${data.category.date}-${data.category.isCompleted.toString()}`, taskData, data.id);
-    } catch (e) {
-        await client.query("ROLLBACK")
+    }).catch(e => {
         console.log("delete task error")
         console.log(e)
-        throw e
-    } finally {
-        client.release()
-    }
+    })
 }
 
 const updateSocketTask = (socket: SessionSocket) => async (unknownData: unknown) => {
-    const userId = socket.request.session.passport.user
-    const client = await db.getClient();
+    const userId = socket.request.session.passport.user;
 
-    try {
-        await client.query("BEGIN");
+    await PgTransaction(async entityManager => {
         const data = SocketUpdateConstraint.parse(unknownData);
-
         const pastData = await updateTaskDb(
-            client, 
+            entityManager, 
             userId, 
             data.id, 
             { name: data.name, completed: data.completed, duedate: data.category.date}
         )
 
-        await client.query("COMMIT")
-
         if (pastData.completed != data.completed) {
-            const taskData1 = await prefectchTaskData(client, userId, { ...data.category, isCompleted: data.completed })
+            const taskData1 = await prefectchTaskData(entityManager, userId, { ...data.category, isCompleted: data.completed })
             socket.emit(`receive-tasks-${data.category.date}-${data.completed.toString()}`, taskData1);
 
-            const taskData2 = await prefectchTaskData(client, userId, data.category)
+            const taskData2 = await prefectchTaskData(entityManager, userId, data.category)
             socket.emit(`receive-tasks-${data.category.date}-${data.category.isCompleted.toString()}`, taskData2);
         }
-
-    } catch (e) {
-        await client.query("ROLLBACK");
+    }).catch(e => {
         console.log("udpate task error");
         console.log(e);
-    } finally {
-        client.release();
-    }
+    })
 }
 
 export default (io: Server, socket: SessionSocket) => {
