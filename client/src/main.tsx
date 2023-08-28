@@ -39,7 +39,10 @@ const router = createBrowserRouter([
             loader: async ({ params }) => {
               const accepted = ["today", "tomorrow", "week", "completed", "overdue"]
               if (!params.todoSec || !accepted.includes(params.todoSec)) throw new Response("Not found", { status: 404 })
-              return await getCategoriesFromParam(params.todoSec)
+              return await getCategoriesFromParam(params.todoSec).then(res => {
+                console.log(res)
+                return res
+              })
             },
           },
           {

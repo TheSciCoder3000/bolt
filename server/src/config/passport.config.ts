@@ -37,19 +37,16 @@ export default function(passport: PassportStatic) {
     );
 
     passport.serializeUser((user, cb) => {
-        console.log("serializing user")
         cb(null, user.id);
     });
 
     passport.deserializeUser(async (id, cb) => {
-        console.log("deserializing user: ", id)
         try {
             const user = await UserRepository.findOne({
                 where: {
                     id: id as string
                 }
             })
-            console.log(user)
             cb(null, user);
         } catch (e) {
             cb(e, false);

@@ -115,22 +115,23 @@ const fetchAllOverdueCategories = async (req: Request, res: Response) => {
     
     else {
         try {
-            
             const data = FetchBodyConstraint.parse(req.body)
             const duedates = await TaskRepository
                 .createQueryBuilder("task")
+                .select("task.duedate", "duedate")
                 .where(
                     "user_id = :userId AND duedate < :duedate AND completed = :completed",
                     { userId, duedate: data.date, completed: false }
                 )
-                .getMany()
+                .distinct(true)
+                .getRawMany()
                 .then(res => res.map(item => {
                     const date = new Date(item.duedate);
                     date.setUTCHours(0);
                     date.setUTCMinutes(0);
                     date.setUTCSeconds(0);
                     date.setUTCMilliseconds(0);
-                    return { operator: "=", isCompleted: false, date: date.toJSON() }
+                    return { operator: "=", isCompleted: false, date: date.toJSON().split("T")[0] }
                 }))
             res.status(200).json({ count: duedates.length, category: duedates })
         } catch (e) {
@@ -164,15 +165,13 @@ const fetchAllCompletedCategories = async (req: Request, res: Response) => {
                 )
                 .getMany()
                 .then(res => res.map(item => {
-                    console.log(item)
                     const date = new Date(item.duedate);
                     date.setUTCHours(0);
                     date.setUTCMinutes(0);
                     date.setUTCSeconds(0);
                     date.setUTCMilliseconds(0);
-                    return { operator: "=", isCompleted: true, date: date.toJSON() }
+                    return { operator: "=", isCompleted: true, date: date.toJSON().split("T")[0] }
                 }))
-            console.log(duedates)
             res.status(200).json({ count: duedates.length, category: duedates })
         } catch (e) {
             console.log(e)
