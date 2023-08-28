@@ -1,11 +1,11 @@
 import "reflect-metadata";
-import { DataSource } from 'typeorm'
-import { User } from "./User.model"
-import { Task } from "./Task.model"
-import { Subject } from "./Subject.model"
+import { DataSource, EntityManager } from 'typeorm'
+import User from "./User.model"
+import Task from "./Task.model"
+import Subject from "./Subject.model"
 import { Session } from "./Session.model"
 
-export const AppDataSource = new DataSource({
+const AppDataSource = new DataSource({
     type: "postgres",
     host: process.env.PGHOST,
     port: parseInt(process.env.PGPORT || "5432"),
@@ -16,3 +16,13 @@ export const AppDataSource = new DataSource({
     synchronize: true,
     // logging: false,
 })
+
+export default AppDataSource;
+
+export const UserRepository = AppDataSource.getRepository(User);
+
+export const TaskRepository = AppDataSource.getRepository(Task);
+
+export const SubjectRepository = AppDataSource.getRepository(Subject);
+
+export const PgTransaction = async (cb: (entityManager: EntityManager) => Promise<unknown>) => AppDataSource.transaction(cb)
