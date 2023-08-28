@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { DataSource, EntityManager } from 'typeorm'
-import User from "./User.model"
-import Task from "./Task.model"
-import Subject from "./Subject.model"
+import User from "./User"
+import Task from "./Task"
+import Subject from "./Subject"
 import { Session } from "./Session.model"
 
 const AppDataSource = new DataSource({

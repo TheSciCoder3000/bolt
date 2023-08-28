@@ -17,16 +17,14 @@ import passportConfig from "./config/passport.config"
 
 // apis
 import authApi from "./api/auth.api";
-import subjectApi from "./api/subject.api";
 import taskApi from "./api/task.api";
 import AppDataSource from "./model/setup";
-import { User } from "./model/User.model";
 
-const app = express();
-
-// ================================== Middleware ==================================
 AppDataSource.initialize()
     .then(async () => {
+        const app = express();
+         
+        // ================================== Middleware ==================================
         app.use(morgan("dev"));     // server logs
         
         app.use(cors(corsConfig));  // enabling CORS
@@ -45,7 +43,6 @@ AppDataSource.initialize()
         
         // ================================== API ==================================
         app.use(authApi(passport))          // auth API
-        // app.use(subjectApi())               // subject API
         app.use(taskApi)
         
         const server = http.createServer(app);
