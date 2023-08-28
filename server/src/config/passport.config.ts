@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import LocalPassport from "passport-local";
 import { PassportStatic } from "passport"
-import { User } from "../model/User.model";
+import User from "../model/User.model";
 import AppDataSource from "../model/setup";
 
 declare global {
@@ -18,10 +18,6 @@ export default function(passport: PassportStatic) {
     passport.use(
         new localStrategy(async (username, password, done) => {
             try {
-                // const user = await db.query("SELECT * FROM bolt_user WHERE username = $1;", [username]).then(res => {
-                //     if (res.rows.length > 0) return res.rows[0];
-                //     else return null;
-                // });
                 const userRepo = await AppDataSource.getRepository(User);
                 const user = await userRepo.findOne({
                     where: {
