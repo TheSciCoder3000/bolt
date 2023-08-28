@@ -1,8 +1,8 @@
 import { Entity, Column, BaseEntity, PrimaryGeneratedColumn, OneToMany } from "typeorm";
-import { Task } from "./Task.model";
+import Task from "../Task.model";
 
 @Entity('subject')
-export class Subject extends BaseEntity {
+export default class Subject extends BaseEntity {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 

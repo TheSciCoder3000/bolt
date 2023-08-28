@@ -8,12 +8,12 @@ import {
     Check,
     JoinColumn
 } from "typeorm";
-import { User } from "./User.model";
-import { Subject } from "./Subject.model";
+import User from "../User.model";
+import Subject from "../Subject.model";
 
 @Entity('task')
 @Check("(task_order IS NOT NULL AND completed_order IS NULL) OR (task_order IS NULL AND completed_order IS NOT NULL)")
-export class Task extends BaseEntity {
+export default class Task extends BaseEntity {
     @PrimaryGeneratedColumn("increment", {
         type: "bigint"
     })
@@ -38,8 +38,7 @@ export class Task extends BaseEntity {
 
     @OneToMany(
         () => Task,
-        task => task.parent,
-        { nullable: true }
+        task => task.parent
     )
     tasks: Task[]
 
@@ -63,7 +62,7 @@ export class Task extends BaseEntity {
     duedate: string;
 
     @Column({ type: "timestamp", nullable: true })
-    duetime: string[];
+    duetime: string | null;
 
     @Column({ type: "int", nullable: true })
     task_order: number | null;

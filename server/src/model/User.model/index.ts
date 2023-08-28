@@ -1,8 +1,8 @@
 import { Entity, Column, BaseEntity, PrimaryGeneratedColumn, OneToMany } from "typeorm";
-import { Task } from "./Task.model";
+import Task from "../Task.model";
 
 @Entity('bolt_user')
-export class User extends BaseEntity {
+export default class User extends BaseEntity {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
@@ -10,7 +10,7 @@ export class User extends BaseEntity {
     username: string;
 
     @Column({ type: "varchar", length: 25, nullable: true })
-    email: string;
+    email: string | null;
 
     @Column({ type: "text", nullable: false })
     password: string;
