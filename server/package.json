@@ -17,7 +17,6 @@
     "@types/express": "^4.17.17",
     "@types/express-session": "^1.17.7",
     "@types/morgan": "^1.9.4",
-    "@types/node": "^20.4.8",
     "@types/passport": "^1.0.12",
     "@types/passport-local": "^1.0.35",
     "@types/pg-format": "^1.0.2",
@@ -44,6 +43,7 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "rimraf": "^5.0.1"
   }
 }
